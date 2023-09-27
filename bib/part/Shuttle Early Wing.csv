@@ -1,0 +1,7 @@
+Name,Shuttle Early Wing,
+Temperature,1920,
+,Path,Portion
+Structure,RCC_,0.08
+Structure,HSRI_LI-900,0.46
+Structure,LRSI,0.22
+Structure,FRSI_,0.24

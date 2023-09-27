@@ -1,0 +1,7 @@
+Name,RCC_,,
+Temperature,1920,,
+,Path,Portion,Tickness
+Top Layer,bib/materials/RCC.csv,1,0.013335
+Layer,bib/materials/RCC.csv,1,0.0056007
+Layer,bib/materials/Inconel_601.csv,1,0.0001
+Layer,bib/materials/Cerachrome-12.csv,1,0.0672

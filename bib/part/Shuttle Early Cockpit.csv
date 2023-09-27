@@ -1,0 +1,7 @@
+Name,Shuttle Early Cockpit,
+Temperature,1920,
+,Path,Portion
+Structure,RCC_,0.1
+Structure,HSRI_LI-900,0.6
+Structure,LRSI,0.25
+Structure,FRSI_,0.05

@@ -1,0 +1,7 @@
+Name,LRSI,,
+Temperature,1330,,
+,Path,Portion,Tickness
+Top Layer,bib/materials/RCG-White.csv,1,0.000254
+Layer,bib/materials/LI-900.csv,1,0.0254
+Layer,bib/materials/SIP.csv,1,0.002
+Layer,bib/materials/RTV.csv,1.8,0.00019

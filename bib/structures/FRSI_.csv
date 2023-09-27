@@ -1,0 +1,5 @@
+Name,FRSI_,,
+Temperature,506,,
+,Path,Portion,Tickness
+Top Layer,bib/materials/FRSI.csv,1,0.01015
+Layer,bib/materials/RTV.csv,1,0.0002
