@@ -1,6 +1,6 @@
 Name,Shuttle Early Fuselage,
 Temperature,1640,
-,Path,Portion
+,Name,Portion
 Structure,HSRI_LI-900,0.25
 Structure,LRSI,0.25
-Structure,FRSI_,0.5
+Structure,FRSI,0.5

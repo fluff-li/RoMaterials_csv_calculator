@@ -1,7 +1,6 @@
 Name,FRSI,,
 Temperature Limit,506,,
 Density,86.5,,
-Tickness,1,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 116.667,1260,0.0178,0.8
 255.556,1310,0.0343,0.8

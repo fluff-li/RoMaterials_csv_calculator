@@ -1,7 +1,6 @@
 Name,RCG,,
 Temperature Limit,1640,,
 Density,1670,,
-Tickness,1,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 200,795,0.843,0.873
 250,795,0.843,0.873

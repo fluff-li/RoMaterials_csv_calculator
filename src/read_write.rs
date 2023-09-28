@@ -50,6 +50,8 @@ pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32)> ) {
     let mut part = Part {
         name: "".to_string(),
         temp: 0.0,
+        height_max: 0.0,
+        height_min: 0.0,
         areal_density: 0.0,
         structures: Vec::<(Structure, f32)>::new(),
         data: Vec::<Pair>::new(),
@@ -220,17 +222,20 @@ pub fn read_material_csv(layer: &mut Layer) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn output_structure(structure: &Structure, path: String) -> Result<(), Box<dyn Error>> {
-    let directory = path + "structures/" + &structure.name + "/";
-    fs::create_dir_all(&directory)?;
+    fs::create_dir_all(&path)?;
 
-    let output_file = directory.clone() + &structure.name + ".csv";
+    // write structure ino path
+    let output_file = path.clone() + &structure.name +"_" + &format!("{:.2}",structure.tickness * 1000.0) + ".csv";
 
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
         Err(err) =>  {println!("Error while reading Results.csv {}", err);
                             process::exit(1);}
     };
+
     //wtr.write_record(&["Name", &structure.name, "", " "]);
+    wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
+    wtr.serialize((structure.name.clone(), structure.temp, structure.tickness, structure.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
     
     for data in structure.data.iter() {
@@ -238,6 +243,9 @@ pub fn output_structure(structure: &Structure, path: String) -> Result<(), Box<d
     }
     wtr.flush()?;    
 
+    // write layer into strucure Folder
+    let directory = path + &structure.name +"_" + &format!("{:.2}",structure.tickness * 1000.0) + "/";
+    fs::create_dir_all(&directory)?;
     for layer in structure.layers.clone() {
         let output_file = directory.clone() + &layer.name + ".csv";
 
@@ -264,7 +272,7 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     let directory = path + "parts/";
     fs::create_dir_all(&directory)?;
 
-    let output_file = directory.clone() + &part.name + ".csv";
+    let output_file = directory.clone() + &part.name +"_" + &format!("{:.2}", part.height_max * 1000.0)+ ".csv";
 
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
@@ -272,6 +280,8 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
                             process::exit(1);}
     };
     //wtr.write_record(&["Name", &structure.name, "", " "]);
+    wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
+    wtr.serialize((part.name, part.temp, part.height_min.to_string() + " - " +  &part.height_max.to_string() , part.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "1 / Thermal Insulance", "Emissivity"])?;
     
     for data in part.data.iter() {

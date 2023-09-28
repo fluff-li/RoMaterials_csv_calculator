@@ -1,7 +1,6 @@
 Name,Cerachrome-12,,
 Temperature Limit,1760,,
 Density,192,,
-Tickness,1,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 311.111,837,0.0402,
 340.556,837,0.043741946871799,

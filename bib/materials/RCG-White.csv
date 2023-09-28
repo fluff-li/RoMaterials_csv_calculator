@@ -1,7 +1,6 @@
 Name,RCG-White,,
 Temperature Limit,1590,,
 Density,1670,,
-Tickness,1,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 200,795,0.843,0.8
 250,795,0.843,0.8

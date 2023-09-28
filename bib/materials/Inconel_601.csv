@@ -1,7 +1,6 @@
 Name,Inconel_601,,
 Temperature Limit,1600,,
 Density,8060,,
-Tickness,1,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 294.444,448,11.2,
 366.667,469,12.6,

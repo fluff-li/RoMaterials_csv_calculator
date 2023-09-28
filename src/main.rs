@@ -37,7 +37,7 @@ fn main() -> std::io::Result<()> {
         create_corresponding_part_temp_list(&mut structure);
     
         calculate_structure(&mut structure);
-        output_structure(&structure, OUTPUT_DIRECTORY.to_string());
+        output_structure(&structure, OUTPUT_DIRECTORY.to_string() + "structures/");
         structures.push(structure);
         
 
@@ -77,9 +77,18 @@ fn main() -> std::io::Result<()> {
 /// calculate the part values based on data from its structures
 fn calculate_part(part: &mut Part) {
     part.areal_density = 0.0;
+    part.height_min = f32::INFINITY;
+    part.height_max = 0.0;
 
     for (structure, portion) in part.structures.iter() {
         part.areal_density += structure.areal_density * portion;
+
+        if part.height_min > structure.tickness {
+            part.height_min = structure.tickness;
+        }
+        if part.height_max < structure.tickness {
+            part.height_max = structure.tickness;
+        }   
     }
 
     

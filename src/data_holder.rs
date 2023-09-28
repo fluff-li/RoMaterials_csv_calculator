@@ -7,6 +7,8 @@ use std::{
 pub struct Part {
     pub name: String,
     pub temp: f32,
+    pub height_max: f32,
+    pub height_min: f32,
     pub areal_density: f32,
     pub structures: Vec<(Structure, f32)>,
     pub data: Vec<Pair>,
