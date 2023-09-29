@@ -1,39 +1,29 @@
 use std::{
     fmt,
     fmt::Display,
+    ops::*,
 };
 
-
-pub struct Part {
+pub struct Construction {
     pub name: String,
     pub temp: f32,
     pub height_max: f32,
     pub height_min: f32,
     pub areal_density: f32,
     pub structures: Vec<(Structure, f32)>,
-    pub data: Vec<Pair>,
+    pub data: Vec<DataPair>,
 }
 
 #[derive(Clone)]
 pub struct Structure {
     pub name: String,
     pub temp: f32,
-    pub data: Vec<Pair>,
+    pub data: Vec<DataPair>,
     pub areal_density: f32,
     pub tickness: f32,
-    pub temp_list: Vec<i32>,
+    pub temp_list2: Vec<f32>,
     pub layers: Vec<Layer>,
 }
-
-#[derive(Debug, Clone)]
-#[allow(non_snake_case)]
-pub struct Data {
-    pub cp: f32,
-    pub R_th: f32,
-    pub e: f32
-}
-#[derive(Debug, Clone)]
-pub struct Pair(pub f32, pub Data);
 
 #[derive(Debug, Clone)]
 pub struct Layer {
@@ -44,9 +34,11 @@ pub struct Layer {
     pub density: f32,
     pub tickness: f32,
     pub areal_density: f32,
-    pub thermal_prop_layer_temp: Vec<Pair>,
-    pub thermal_prop_struct_temp: Vec<Pair>,
-    pub thermal_prop_struct_temp_frac: Vec<Pair>,
+    pub thermal_prop_layer_temp: Vec<DataPair>,
+    pub thermal_prop_struct_temp: Vec<DataPair>,
+    pub thermal_prop_struct_temp_frac: Vec<DataPair>,
+
+    pub thermal_prop_layer_in_struct: Vec<DataTriplet>,
 }
 impl Default for Layer{
     fn default() -> Self {
@@ -58,9 +50,10 @@ impl Default for Layer{
             density: 0.0,
             tickness: 0.0,
             areal_density: 0.0,
-            thermal_prop_layer_temp: Vec::<Pair>::new(),
-            thermal_prop_struct_temp: Vec::<Pair>::new(),
-            thermal_prop_struct_temp_frac: Vec::<Pair>::new(),
+            thermal_prop_layer_temp: Vec::<DataPair>::new(),
+            thermal_prop_struct_temp: Vec::<DataPair>::new(),
+            thermal_prop_struct_temp_frac: Vec::<DataPair>::new(),
+            thermal_prop_layer_in_struct: Vec::<DataTriplet>::new(),
         }
     }
 }
@@ -70,5 +63,87 @@ impl Display for Layer {
         write!(f, "{}: max Temp {} density {}, tickness {}, portion {}
                     \npath: {} 
                     \n{:?}\n{:?} \n", self.name, self.temp_max, self.density, self.tickness, self.portion, self.path, self.thermal_prop_layer_temp, self.thermal_prop_struct_temp)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[allow(non_snake_case)]
+pub struct Data {
+    pub cp: f32,
+    pub R_th: f32,
+    pub e: f32
+}
+impl Add<Data> for Data {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Data{
+            cp: self.cp + other.cp,
+            R_th: self.R_th + other.R_th,
+            e: self.e + other.e,
+        }
+    }
+
+}
+impl Sub<Data> for Data {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Data{
+            cp: self.cp - other.cp,
+            R_th: self.R_th - other.R_th,
+            e: self.e - other.e,
+        }
+    }
+
+}
+impl Div<Data> for Data {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self::Output {
+        Data{
+            cp: self.cp / other.cp,
+            R_th: self.R_th / other.R_th,
+            e: self.e / other.e,
+        }
+    }
+
+}
+impl Div<f32> for Data {
+    type Output = Self;
+
+    fn div(self, other: f32) -> Self::Output {
+        Data{
+            cp: self.cp / other,
+            R_th: self.R_th / other,
+            e: self.e / other,
+        }
+    }
+
+}
+impl Mul<f32> for Data {
+    type Output = Self;
+
+    fn mul(self, other: f32) -> Self::Output {
+        Data{
+            cp: self.cp * other,
+            R_th: self.R_th * other,
+            e: self.e * other,
+        }
+    }
+
+}
+#[derive(Debug, Clone)]
+pub struct DataPair(pub f32, pub Data);
+
+#[derive(Debug, Clone, Copy)]
+pub struct DataTriplet {
+    pub temp_part: f32, 
+    pub thermal_data: Data, 
+    pub temp_sub_part: f32
+}
+impl DataTriplet {
+    pub fn to_data_pair(self) -> DataPair {
+        DataPair(self.temp_part, self.thermal_data)
     }
 }
