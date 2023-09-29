@@ -1,5 +1,5 @@
 Name,HSRI_LI-900,,
-Temperature,1650,,
+Temperature,1640,,
 ,Path,Portion,Tickness
 Top Layer,bib/materials/RCG.csv,1,0.000254
 Layer,bib/materials/LI-900.csv,1,0.0254
