@@ -358,11 +358,28 @@ pub fn output_structure(structure: &Structure, path: String) -> Result<(), Box<d
     wtr.flush()?;    
 
     // write layer into strucure Folder
-    let directory = path + &structure.name +"_" + &format!("{:.2}",structure.tickness * 1000.0);
+    let directory = (&path).to_string() + &structure.name +"_" + &format!("{:.2}",structure.tickness * 1000.0);
     fs::create_dir_all(&directory)?;
     for layer in structure.layers.clone() {
         output_layer(&layer,&directory, &structure.temp_list2)?;
     }
+
+
+    let output_file = path.clone() + &structure.name +"_" + &format!("{:.2}",structure.tickness * 1000.0) + ".txt";
+    wtr = match csv::Writer::from_path(&output_file){
+        Ok(result) => {result},
+        Err(err) =>  {println!("Error while reading Results.csv {}", err);
+                            process::exit(1);}
+    };
+    wtr.serialize(("Name", &structure.name,""))?;
+    wtr.serialize(("Max Temp", structure.temp,""))?;
+    wtr.serialize(("Areal Density", structure.areal_density,""))?;
+    wtr.serialize(("Height Max", structure.tickness,""))?;
+    for layer in &structure.layers {
+        wtr.serialize(("layer", &layer.name, layer.tickness * layer.portion))?;    
+    }
+    wtr.flush()?;
+
     Ok(())
 }
 
@@ -386,6 +403,24 @@ pub fn output_part(part: Construction, path: String) -> Result<(), Box<dyn Error
         wtr.serialize((data.0, data.1.cp, data.1.R_th, data.1.e))?;
     }
     wtr.flush()?;
+
+    let output_file = path.clone() + &part.name +"_" + &format!("{:.2}", part.height_max * 1000.0)+ ".txt";
+
+    wtr = match csv::Writer::from_path(&output_file){
+        Ok(result) => {result},
+        Err(err) =>  {println!("Error while reading Results.csv {}", err);
+                            process::exit(1);}
+    };
+    wtr.serialize(("Name", part.name,""))?;
+    wtr.serialize(("Max Temp", part.temp,""))?;
+    wtr.serialize(("Areal Density", part.areal_density,""))?;
+    wtr.serialize(("Height Max", part.height_max,""))?;
+    wtr.serialize(("Height Min", part.height_min,""))?;
+    for structure in &part.structures {
+        wtr.serialize(("layer", &structure.0.name, structure.1))?;    
+    }
+    wtr.flush()?;
+
     Ok(())
 }
 
