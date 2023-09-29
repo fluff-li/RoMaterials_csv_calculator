@@ -1,4 +1,4 @@
-Name,RCC,,
+Name,RCC_min,,
 Temperature,1920,,
 ,Path,Portion,Tickness
 Top Layer,bib/materials/RCC.csv,1,0.013335

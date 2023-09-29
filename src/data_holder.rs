@@ -6,12 +6,21 @@ use std::{
 
 pub struct Construction {
     pub name: String,
+    pub description: String,
     pub temp: f32,
-    pub height_max: f32,
-    pub height_min: f32,
-    pub areal_density: f32,
-    pub structures: Vec<(Structure, f32)>,
-    pub data: Vec<DataPair>,
+    pub absorbation_const: f32,
+    pub cost_per_area: f32,
+    pub has_ablator: bool,
+    pub height_min1: f32,
+    pub height_min0: f32,
+    pub height_max1: f32,
+    pub height_max0: f32,
+    pub areal_density_min: f32,
+    pub areal_density_max: f32,
+    pub structures_min: Vec<(Structure, f32)>,
+    pub structures_max: Vec<(Structure, f32)>,
+    pub data_min: Vec<DataPair>,
+    pub data_max: Vec<DataPair>,
 }
 
 #[derive(Clone)]

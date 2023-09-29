@@ -1,7 +1,16 @@
 Name,Shuttle Early Cockpit,
+Description,OV-102 Columbia,
 Temperature,1920,
-,Name,Portion
-Structure,RCC,0.1
-Structure,HSRI_LI-900,0.6
+AbsorbationConstant,0.32,
+CostPerArea,0,
+HasAblator,false,
+Min,Name,Portion
+Structure,RCC_min,0.1
+Structure,HSRI_LI-900_min,0.6
+Structure,LRSI,0.25
+Structure,FRSI,0.05
+Max,Name,Portion
+Structure,RCC_max,0.1
+Structure,HSRI_LI-900_max,0.6
 Structure,LRSI,0.25
 Structure,FRSI,0.05

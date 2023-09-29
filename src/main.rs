@@ -49,26 +49,33 @@ fn main() -> std::io::Result<()> {
         
 
     }
+
+
     let part_paths = get_files("bib/part".to_string(), OsString::from("csv"));
-
-
     for path in part_paths.iter() {
-        let (mut part, mut part_list) = read_part_csv(path);
+        let (mut part, mut part_list_min, mut part_list_max) = read_part_csv(path);
 
         for structure in &structures {
-            for (i, (name, portion)) in part_list.iter_mut().enumerate() {
+            for (i, (name, portion)) in part_list_min.iter_mut().enumerate() {
                 if structure.name == *name {
-                    part.structures.push((structure.clone(), *portion));
-                    part_list.remove(i);
+                    part.structures_min.push((structure.clone(), *portion));
+                    part_list_min.remove(i);
                     break;
                 }
             }
-            if part_list.is_empty() {
+            for (i, (name, portion)) in part_list_max.iter_mut().enumerate() {
+                if structure.name == *name {
+                    part.structures_max.push((structure.clone(), *portion));
+                    part_list_max.remove(i);
+                    break;
+                }
+            }
+            if part_list_min.is_empty() & part_list_max.is_empty() {
                 break;
             }
         }
-        if !part_list.is_empty() {
-            println!("Error Part {}: Structures not found. {:?} ", part.name, part_list );
+        if !part_list_min.is_empty() | !part_list_max.is_empty()  {
+            println!("Error Part {}: Structures not found. {:?} {:?}", part.name, part_list_min, part_list_max );
             process::exit(1);
         }
 
@@ -287,32 +294,57 @@ fn expand_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec
 
 /// calculate the part values based on data from its structures
 fn calculate_part(part: &mut Construction) {
-    part.areal_density = 0.0;
-    part.height_min = f32::INFINITY;
-    part.height_max = 0.0;
+    part.areal_density_min = 0.0;
+    part.areal_density_max = 0.0;
+    part.height_min0 = f32::INFINITY;
+    part.height_min1 = 0.0;
+    part.height_max0 = f32::INFINITY;
+    part.height_max1 = 0.0;
 
-    for (structure, portion) in part.structures.iter() {
-        part.areal_density += structure.areal_density * portion;
+    for (structure, portion) in part.structures_min.iter() {
+        part.areal_density_min += structure.areal_density * portion;
 
-        if part.height_min > structure.tickness {
-            part.height_min = structure.tickness;
+        if part.height_min0 > structure.tickness {
+            part.height_min0 = structure.tickness;
         }
-        if part.height_max < structure.tickness {
-            part.height_max = structure.tickness;
+        if part.height_min1 < structure.tickness {
+            part.height_min1 = structure.tickness;
+        }   
+    }
+    for (structure, portion) in part.structures_max.iter() {
+        part.areal_density_max += structure.areal_density * portion;
+
+        if part.height_max0 > structure.tickness {
+            part.height_max0 = structure.tickness;
+        }
+        if part.height_max1 < structure.tickness {
+            part.height_max1 = structure.tickness;
         }   
     }
 
-    for (i, temp) in part.structures[1].0.temp_list2.iter().enumerate() {
+    for (i, temp) in part.structures_min[1].0.temp_list2.iter().enumerate() {
         let mut cp = 0.0;
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for (structure, portion) in part.structures.iter() {
-            cp += structure.data[i].1.cp * structure.areal_density / part.areal_density * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            r_th += structure.data[i].1.R_th * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+        for (structure, portion) in part.structures_min.iter() {
+            cp += structure.data[i].1.cp * structure.areal_density / part.areal_density_min * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            r_th += structure.data[i].1.R_th * portion * (structure.temp - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
             e += structure.data[i].1.e * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
         }
-        part.data.push(DataPair((*temp - 25.0) as f32, Data{cp, R_th: 1.0 / r_th, e: e}));
+        part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp, R_th: 1.0 / r_th, e: e}));
+    }
+    for (i, temp) in part.structures_max[1].0.temp_list2.iter().enumerate() {
+        let mut cp = 0.0;
+        let mut r_th = 0.0;
+        let mut e = 0.0;
+
+        for (structure, portion) in part.structures_max.iter() {
+            cp += structure.data[i].1.cp * structure.areal_density / part.areal_density_max * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            r_th += structure.data[i].1.R_th * portion * (structure.temp - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
+            e += structure.data[i].1.e * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+        }
+        part.data_max.push(DataPair((*temp - 25.0) as f32, Data{cp, R_th: 1.0 / r_th, e: e}));
     }
 }
 

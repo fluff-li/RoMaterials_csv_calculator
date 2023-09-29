@@ -1,7 +1,16 @@
 Name,Shuttle Early Wing,
+Description,OV-102 Columbia,
 Temperature,1920,
-,Name,Portion
-Structure,RCC,0.08
-Structure,HSRI_LI-900,0.46
+AbsorbationConstant,0.32,
+CostPerArea,0,
+HasAblator,false,
+Min,Name,Portion
+Structure,RCC_min,0.08
+Structure,HSRI_LI-900_min,0.46
+Structure,LRSI,0.22
+Structure,FRSI,0.24
+Max,Name,Portion
+Structure,RCC_max,0.08
+Structure,HSRI_LI-900_max,0.46
 Structure,LRSI,0.22
 Structure,FRSI,0.24
