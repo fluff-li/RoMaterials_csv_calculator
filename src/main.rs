@@ -202,15 +202,19 @@ fn fill_gaps_in_csv(thermal_list: &mut Vec<DataPair>,) {
             thermal_list[i].1.e = thermal_list[n_cp].1.e;
         }
     }
-    
-
 }
 
 /// Adjust read values to thickness & density
 fn adjust_to_height (areal_density: f32, height: f32, data: &Vec<DataPair> ) -> Vec<DataPair> {
     let mut data_new = Vec::<DataPair>::new();
     for row in data.iter() {
-        data_new.push(DataPair(row.0, Data{cp: row.1.cp, R_th: height / row.1.R_th * 1000.0, e: row.1.e }));
+        let r_th;
+        if row.1.R_th != 0.0 {
+            r_th = height / row.1.R_th * 1000.0;
+        } else {
+            r_th = 0.0;
+        }
+        data_new.push(DataPair(row.0, Data{cp: row.1.cp, R_th: r_th, e: row.1.e }));
     }
     data_new
 }
@@ -258,7 +262,9 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
                 index += 1;
             }
         }
-        
+        if index == thermal_list.len() {
+            break;
+        }
         if n + 2 == thermal_list.len() {
             let data = data_delta / temp_delta * (ref_temp_list[index] - row.temp_part) + row.thermal_data;
                     let temp_sub_part = temp_sub_part_delta / temp_delta * (ref_temp_list[index] - row.temp_part) + row.temp_sub_part;
@@ -320,6 +326,7 @@ fn calculate_part(part: &mut Part) {
             cp += data_adjusted[i].thermal_data.cp * structure.areal_density / part.areal_density_min * portion * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
             r_th += data_adjusted[i].thermal_data.R_th * portion;// * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
             e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            //e +=  data_adjusted[i].thermal_data.e * portion * ( f32::powf(structure.temp_max,4.0) - f32::powf(0.0, 4.0) ) / ( f32::powf(part.temp,4.0) - f32::powf(0.0, 4.0) );
         }
         part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
     }
