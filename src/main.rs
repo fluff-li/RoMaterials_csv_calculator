@@ -11,43 +11,36 @@ use std::{
 };
 
 
-// https://docs.rs/csv/latest/csv/tutorial/
-
-
 const TEMPERATURE_EQUALIZED: f32 = 0.0;//273.15;
 const TEMP_STEP: f32 = 50.0;
 const TEMP_LIST: &str = "bib/Temp_List.csv";
 const OUTPUT_DIRECTORY: &str = "out/";
 
 
-
 fn main() -> std::io::Result<()> {
-    let mut structures = Vec::<Structure>::new();
+    let mut tps_list = Vec::<TPS>::new();
+    let temp_list = read_temp_list_csv2(&PathBuf::from(TEMP_LIST));
+    let tps_paths = get_files("bib/structures".to_string(), OsString::from("csv"));
 
-    let structure_paths = get_files("bib/structures".to_string(), OsString::from("csv"));
+    for path in tps_paths.iter() {
+        let mut tps = read_structure_csv(path);
+        tps.temp_list2 = temp_list.clone();
 
-    for path in structure_paths.iter() {
-        let mut structure = read_structure_csv(path);
-        structure.temp_list2 = read_temp_list_csv2(&PathBuf::from(TEMP_LIST));
-
-        for layer in structure.layers.iter_mut() {
-            read_material_csv(layer);
-            fill_gaps_in_csv(&mut layer.thermal_prop_layer_temp);   
-            match output_data_Pair(&layer.name, &layer.thermal_prop_layer_temp, "out/test/layers".to_string()) {
-                Ok(result) => {result},
-                Err(err) =>  {println!("Error on output_data_Pair {}", err);
-                                    process::exit(1);}
-            }; 
-            adjust_to_geometry(layer);
-            
+        for segment in tps.segments.iter_mut() {
+            read_material_csv(segment);
+            fill_gaps_in_csv(&mut segment.data_csv);
+            segment.areal_density = segment.density * segment.tickness;
+            segment.data_height_adjust = adjust_to_height(segment.areal_density, segment.tickness, &segment.data_csv);
+            segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp_max, segment.temp_max, &segment.data_height_adjust, &temp_list);            
         }
-        create_corresponding_part_temp_list(&mut structure);
-        
-        calculate_structure(&mut structure);
-        output_structure(&structure, OUTPUT_DIRECTORY.to_string() + "structures/");
-        structures.push(structure);
-        
+        calc_tps_height_density(&mut tps);
+        for segment in tps.segments.iter_mut() {
+            segment.data_tps_temp_mult = tps_value_mult(tps.areal_density,segment.areal_density ,&segment.data_tps_temp_map);
+        }
+        tps.data = calc_tps_data(&tps, &temp_list);
 
+        output_tps(&tps, OUTPUT_DIRECTORY.to_string() + "structures/").unwrap();
+        tps_list.push(tps);
     }
 
 
@@ -55,17 +48,20 @@ fn main() -> std::io::Result<()> {
     for path in part_paths.iter() {
         let (mut part, mut part_list_min, mut part_list_max) = read_part_csv(path);
 
-        for structure in &structures {
+        for structure in &tps_list {
             for (i, (name, portion)) in part_list_min.iter_mut().enumerate() {
                 if structure.name == *name {
-                    part.structures_min.push((structure.clone(), *portion));
+                    part.tps_list_min.push((structure.clone(), *portion
+                                            , map_component_data_to_assembly(part.temp, structure.temp_max, &structure.data, &temp_list)));
                     part_list_min.remove(i);
+                    output_data_Triplet(&structure.name,&part.tps_list_min.last().unwrap().2, "out/test/".to_owned() + &part.name + "/expanded_list2");
                     break;
                 }
             }
             for (i, (name, portion)) in part_list_max.iter_mut().enumerate() {
                 if structure.name == *name {
-                    part.structures_max.push((structure.clone(), *portion));
+                    part.tps_list_max.push((structure.clone(), *portion
+                                            , map_component_data_to_assembly(part.temp, structure.temp_max, &structure.data, &temp_list)));
                     part_list_max.remove(i);
                     break;
                 }
@@ -79,6 +75,7 @@ fn main() -> std::io::Result<()> {
             process::exit(1);
         }
 
+    
         calculate_part(&mut part);
 
         output_part(part, OUTPUT_DIRECTORY.to_string() + "parts/");
@@ -210,90 +207,82 @@ fn fill_gaps_in_csv(thermal_list: &mut Vec<DataPair>,) {
 }
 
 /// Adjust read values to thickness & density
-fn adjust_to_geometry (layer: &mut Layer ) {
-    layer.areal_density = layer.density * layer.tickness;
-    for prop_list in layer.thermal_prop_layer_temp.iter_mut() {
-        prop_list.1.cp *= layer.areal_density;
-        prop_list.1.R_th = layer.tickness / prop_list.1.R_th * 1000.0;
+fn adjust_to_height (areal_density: f32, height: f32, data: &Vec<DataPair> ) -> Vec<DataPair> {
+    let mut data_new = Vec::<DataPair>::new();
+    for row in data.iter() {
+        data_new.push(DataPair(row.0, Data{cp: row.1.cp, R_th: height / row.1.R_th * 1000.0, e: row.1.e }));
     }
-}
-
-/// Copy layer into an expanded list part temperature of predefined range & steps as basis
-fn create_corresponding_part_temp_list(structure: &mut Structure) {
-    let temp_range = structure.temp - TEMPERATURE_EQUALIZED;
-
-    // Calulate corresponding structure temperature for each layer
-    for layer in structure.layers.iter_mut() {
-        for data_pair in layer.thermal_prop_layer_temp.iter() {
-            let mut temp_struct = temp_range / (layer.temp_max - TEMPERATURE_EQUALIZED) * (data_pair.0  - TEMPERATURE_EQUALIZED) + TEMPERATURE_EQUALIZED;
-            if data_pair.0 > temp_struct {
-                temp_struct = data_pair.0;
-            }
-            layer.thermal_prop_layer_in_struct.push(DataTriplet { temp_part: temp_struct, thermal_data: data_pair.1, temp_sub_part: data_pair.0 } );
-        }
-        let expanded_list = expand_list(&layer.thermal_prop_layer_in_struct, &structure.temp_list2);
-        
-
-        layer.thermal_prop_struct_temp.clear();
-        for n in &expanded_list {
-            layer.thermal_prop_struct_temp.push(n.to_data_pair())
-        }
-        //output_data_Triplet(&layer.name,&layer.thermal_prop_layer_in_struct, "out/test/".to_owned() + &structure.name + "/thermal_prop_layer_in_struct");
-        //output_data_Triplet(&layer.name,&expanded_list, "out/test/".to_owned() + &structure.name + "/expanded_list");
-    }
-
+    data_new
 }
 
 /// expand list in to predefined range & steps and fill in the gaps
-fn expand_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<DataTriplet>{
-    let mut data_adjusted: Vec<DataTriplet> = Vec::<DataTriplet>::new();
+fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<DataTriplet>{
+    //let mut data_adjusted: Vec<DataTriplet> = Vec::<DataTriplet>::with_capacity(ref_temp_list.len());
+    let mut data_adjusted = Vec::<DataTriplet>::new();
+    let mut index = 0;
+    let mut index2 = 0;
 
-        for temp in ref_temp_list {
-            if temp >= &thermal_list[0].temp_part{
-                break;
-            }
-            data_adjusted.push(DataTriplet { temp_part: *temp, thermal_data: thermal_list[0].thermal_data, temp_sub_part: 0.0 })
+    for (i, temp) in ref_temp_list.iter().enumerate() {
+        if temp >= &thermal_list[0].temp_part{
+            index = i;
+            break;
         }
+        data_adjusted.push( DataTriplet{ temp_part: *temp, thermal_data: thermal_list[0].thermal_data, temp_sub_part: thermal_list[0].temp_sub_part * *temp / thermal_list[0].temp_part });
+    }
 
-        let mut n = 0;
-        for (i, row) in thermal_list.iter().enumerate() {
-            let temp_delta = thermal_list[i+1].temp_part - row.temp_part;
-            let data_delta = thermal_list[i+1].thermal_data - row.thermal_data;
-            let temp_sub_part_delta = thermal_list[i+1].temp_sub_part - row.temp_sub_part;
-            for j in n..ref_temp_list.len() {
-                if ref_temp_list[j] == row.temp_part {
-                    n = j;
-                    data_adjusted.push(DataTriplet { temp_part: row.temp_part, 
-                                                    thermal_data: row.thermal_data,
-                                                    temp_sub_part: row.temp_sub_part })
-                } 
-                else if ref_temp_list[j] > row.temp_part && ref_temp_list[j] < thermal_list[i+1].temp_part {
-                    n = j;
-                    let data = data_delta / temp_delta * (ref_temp_list[j] - row.temp_part) + row.thermal_data;
-                    let temp_sub_part = temp_sub_part_delta / temp_delta * (ref_temp_list[j] - row.temp_part) + row.temp_sub_part;
-                    data_adjusted.push(DataTriplet { temp_part: ref_temp_list[j], 
-                                                     thermal_data: data,
-                                                     temp_sub_part: temp_sub_part })
-                } 
+    // take two neighboring values and fill int for temperatures fitting in between
+    for (n, row) in thermal_list.iter().enumerate() {
+        if row.temp_part > *ref_temp_list.last().unwrap() {
+            index2 = n;
+            break;
+        }
+        
+        let temp_delta = thermal_list[n+1].temp_part - row.temp_part;
+        let data_delta = thermal_list[n+1].thermal_data - row.thermal_data;
+        let temp_sub_part_delta = thermal_list[n+1].temp_sub_part - row.temp_sub_part;
+
+
+        for (i, temp) in ref_temp_list.iter().skip(index).enumerate() {
+            if *temp == row.temp_part {
+                data_adjusted.push(DataTriplet { temp_part: row.temp_part, 
+                                                thermal_data: row.thermal_data,
+                                                temp_sub_part: row.temp_sub_part });
+                index += 1; 
             }
-            if i+2 == thermal_list.len() {
-                    let data = data_delta / temp_delta * (ref_temp_list[n+1] - row.temp_part) + row.thermal_data;
-                    let temp_sub_part = temp_sub_part_delta / temp_delta * (ref_temp_list[n+1] - row.temp_part) + row.temp_sub_part;
-                    data_adjusted.push(DataTriplet { temp_part: ref_temp_list[n+1], 
+            if *temp > row.temp_part && *temp < thermal_list[n + 1].temp_part {
+                let data = data_delta / temp_delta * (temp - row.temp_part) + row.thermal_data;
+                    let temp_sub_part = temp_sub_part_delta / temp_delta * (temp - row.temp_part) + row.temp_sub_part;
+                    data_adjusted.push(DataTriplet { temp_part: *temp, 
                                                      thermal_data: data,
                                                      temp_sub_part: temp_sub_part });
-                break;
+                index += 1;
             }
         }
-        for temp in ref_temp_list.iter().skip(n+2){
-            data_adjusted.push(DataTriplet { temp_part: *temp, thermal_data: data_adjusted[n+1].thermal_data, temp_sub_part: 0.0 })
+        
+        if n + 2 == thermal_list.len() {
+            let data = data_delta / temp_delta * (ref_temp_list[index] - row.temp_part) + row.thermal_data;
+                    let temp_sub_part = temp_sub_part_delta / temp_delta * (ref_temp_list[index] - row.temp_part) + row.temp_sub_part;
+                    data_adjusted.push( DataTriplet { temp_part: ref_temp_list[index], 
+                                                     thermal_data: data,
+                                                     temp_sub_part: temp_sub_part });
+            index += 1;
+            index2 = n;
+            break;
         }
+
+    }
+
+    // fill copy of last usable to fill the rest
+    for temp in ref_temp_list.iter().skip(index){
+        let temp_sub_part = data_adjusted.last().unwrap().temp_sub_part / data_adjusted.last().unwrap().temp_part * temp;
+        data_adjusted.push(DataTriplet { temp_part: *temp, thermal_data: data_adjusted.last().unwrap().thermal_data, temp_sub_part: temp_sub_part})
+    }
 
     data_adjusted
 }
 
 /// calculate the part values based on data from its structures
-fn calculate_part(part: &mut Construction) {
+fn calculate_part(part: &mut Part) {
     part.areal_density_min = 0.0;
     part.areal_density_max = 0.0;
     part.height_min0 = f32::INFINITY;
@@ -301,7 +290,7 @@ fn calculate_part(part: &mut Construction) {
     part.height_max0 = f32::INFINITY;
     part.height_max1 = 0.0;
 
-    for (structure, portion) in part.structures_min.iter() {
+    for (structure, portion, data) in part.tps_list_min.iter() {
         part.areal_density_min += structure.areal_density * portion;
 
         if part.height_min0 > structure.tickness {
@@ -311,7 +300,7 @@ fn calculate_part(part: &mut Construction) {
             part.height_min1 = structure.tickness;
         }   
     }
-    for (structure, portion) in part.structures_max.iter() {
+    for (structure, portion, data) in part.tps_list_max.iter() {
         part.areal_density_max += structure.areal_density * portion;
 
         if part.height_max0 > structure.tickness {
@@ -322,69 +311,88 @@ fn calculate_part(part: &mut Construction) {
         }   
     }
 
-    for (i, temp) in part.structures_min[1].0.temp_list2.iter().enumerate() {
+    for (i, temp) in part.tps_list_min[1].0.temp_list2.iter().enumerate() {
         let mut cp = 0.0;
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for (structure, portion) in part.structures_min.iter() {
-            cp += structure.data[i].1.cp * structure.areal_density / part.areal_density_min * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            r_th += structure.data[i].1.R_th * portion * (structure.temp - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
-            e += structure.data[i].1.e * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+        for (structure, portion, data_adjusted) in part.tps_list_min.iter() {
+            cp += data_adjusted[i].thermal_data.cp * structure.areal_density / part.areal_density_min * portion * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
+            e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
         }
-        part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp, R_th: 1.0 / r_th, e: e}));
+        part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
     }
-    for (i, temp) in part.structures_max[1].0.temp_list2.iter().enumerate() {
+    for (i, temp) in part.tps_list_max[1].0.temp_list2.iter().enumerate() {
         let mut cp = 0.0;
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for (structure, portion) in part.structures_max.iter() {
-            cp += structure.data[i].1.cp * structure.areal_density / part.areal_density_max * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            r_th += structure.data[i].1.R_th * portion * (structure.temp - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
-            e += structure.data[i].1.e * portion * (structure.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+        for (structure, portion, data_adjusted) in part.tps_list_max.iter() {
+            cp += data_adjusted[i].thermal_data.cp * structure.areal_density / part.areal_density_max * portion * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
+            e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
         }
-        part.data_max.push(DataPair((*temp - 25.0) as f32, Data{cp, R_th: 1.0 / r_th, e: e}));
+        part.data_max.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
     }
 }
 
 /// calculate the structure values based on data from layer
-fn calculate_structure(structure: &mut Structure) {
-    structure.areal_density = 0.0;
-    structure.tickness = 0.0;
+fn calc_tps_height_density(tps: &mut TPS) {
+    tps.areal_density = 0.0;
+    tps.tickness = 0.0;
     
-    for layer in structure.layers.iter() {
-        structure.areal_density += layer.areal_density; 
-        structure.tickness += layer.tickness;
+    for layer in tps.segments.iter() {
+        tps.areal_density += layer.areal_density; 
+        tps.tickness += layer.tickness;
     }
-    adjust_layers_to_structure_temp_and_density(structure);
+}
 
-    for (i, temp) in structure.temp_list2.iter().enumerate() {
+fn calc_tps_data(tps: &TPS, temp_list: &Vec<f32>) -> Vec<DataPair> {
+    let mut data = Vec::<DataPair>::new();
+
+    for (i, temp) in temp_list.iter().enumerate() {    
         let mut cp = 0.0;
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for layer in structure.layers.iter() {
-            cp += layer.thermal_prop_struct_temp_frac[i].1.cp;
-            r_th += layer.thermal_prop_struct_temp_frac[i].1.R_th;
+        for layer in tps.segments.iter() {
+            cp += layer.data_tps_temp_mult[i].thermal_data.cp;
+            r_th += layer.data_tps_temp_mult[i].thermal_data.R_th;
 
             if e <= 0.0 {
-                e = layer.thermal_prop_struct_temp_frac[i].1.e;
+                e = layer.data_tps_temp_mult[i].thermal_data.e;
             }
         }
-        structure.data.push(DataPair(*temp, Data{cp, R_th: r_th, e: e}));
+        data.push(DataPair(*temp, Data{cp, R_th: r_th, e: e}));
     }
+    data
 }
 
 
-/// multiplyer on layer values based om structure temperature & density
-fn adjust_layers_to_structure_temp_and_density (structure: &mut Structure) {
-    for layer in structure.layers.iter_mut() {
-        layer.thermal_prop_struct_temp_frac = layer.thermal_prop_struct_temp.clone();
+/// multiplyer on component values based om assembly temperature & density
+fn tps_value_mult (assembly_density: f32, segment_density: f32, segment_data: &Vec<DataTriplet>) -> Vec<DataTriplet>{
+    let mut new_tripl = Vec::<DataTriplet>::new();
 
-        for (i, prop_list) in layer.thermal_prop_struct_temp_frac.iter_mut().enumerate() {
-            prop_list.1.cp *= prop_list.0 / (structure.temp_list2[i] * structure.areal_density) ;
-            prop_list.1.R_th *= prop_list.0 / structure.temp_list2[i];
-        }
+    for row in segment_data.iter() {
+        
+        new_tripl.push(DataTriplet{temp_part: row.temp_part, temp_sub_part: row.temp_sub_part, 
+                        thermal_data: Data{cp: row.thermal_data.cp * row.temp_sub_part * segment_density / (row.temp_part * assembly_density),
+                                            R_th: row.thermal_data.R_th, //prop_list.thermal_data.R_th *= prop_list.temp_sub_part / prop_list.temp_part;
+                                            e: row.thermal_data.e,
+        }})
     }
+    new_tripl
+}
+
+fn map_component_data_to_assembly(assemb_temp_max: f32, comp_temp_max: f32, comp_data: &Vec<DataPair>, temp_list: &Vec<f32>) -> Vec<DataTriplet> {
+    let temp_range = assemb_temp_max - TEMPERATURE_EQUALIZED;
+    let mut data_new = Vec::<DataTriplet>::new();
+
+    for data in comp_data.iter() {
+        let temp_assemb = (data.0 - TEMPERATURE_EQUALIZED) * (assemb_temp_max - TEMPERATURE_EQUALIZED) / (comp_temp_max - TEMPERATURE_EQUALIZED) + TEMPERATURE_EQUALIZED;
+        data_new.push(DataTriplet{temp_part: temp_assemb, thermal_data: data.1, temp_sub_part: data.0})
+    }
+    //data_new
+    fit_list(&data_new, &temp_list)
 }
