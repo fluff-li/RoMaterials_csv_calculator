@@ -393,11 +393,16 @@ fn tps_value_mult (assembly_density: f32, segment_density: f32, segment_data: &V
 }
 
 fn map_component_data_to_assembly(assemb_temp_max: f32, comp_temp_max: f32, comp_data: &Vec<DataPair>, temp_list: &Vec<f32>) -> Vec<DataTriplet> {
-    let temp_range = assemb_temp_max - TEMPERATURE_EQUALIZED;
     let mut data_new = Vec::<DataTriplet>::new();
-
+    let temp_mult;
+    if comp_temp_max < assemb_temp_max {
+        temp_mult = (assemb_temp_max - TEMPERATURE_EQUALIZED) / (comp_temp_max - TEMPERATURE_EQUALIZED);
+    } else {
+        temp_mult = 1.0;
+    }
+    
     for data in comp_data.iter() {
-        let temp_assemb = (data.0 - TEMPERATURE_EQUALIZED) * (assemb_temp_max - TEMPERATURE_EQUALIZED) / (comp_temp_max - TEMPERATURE_EQUALIZED) + TEMPERATURE_EQUALIZED;
+        let temp_assemb = (data.0 - TEMPERATURE_EQUALIZED) * temp_mult + TEMPERATURE_EQUALIZED;
         data_new.push(DataTriplet{temp_part: temp_assemb, thermal_data: data.1, temp_sub_part: data.0})
     }
     //data_new
