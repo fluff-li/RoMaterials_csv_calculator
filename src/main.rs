@@ -29,8 +29,8 @@ fn main() -> std::io::Result<()> {
         for segment in tps.segments.iter_mut() {
             read_material_csv(segment);
             fill_gaps_in_csv(&mut segment.data_csv);
-            segment.areal_density = segment.density * segment.tickness;
-            segment.data_height_adjust = adjust_to_height(segment.areal_density, segment.tickness, &segment.data_csv);
+            segment.areal_density = segment.density * segment.tickness * segment.portion;
+            segment.data_height_adjust = adjust_to_height(segment.areal_density, segment.tickness * segment.portion, &segment.data_csv);
             segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp_max, segment.temp_max, &segment.data_height_adjust, &temp_list);            
         }
         calc_tps_height_density(&mut tps);
