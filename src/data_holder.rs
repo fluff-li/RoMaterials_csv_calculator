@@ -40,13 +40,16 @@ pub struct Segment {
     pub path: String,
     pub portion: f32,
     pub temp_max: f32,
+    pub temp_hot_side: f32,
+    pub temp_cold_side: f32,
     pub density: f32,
     pub tickness: f32,
     pub areal_density: f32,
     pub data_csv: Vec<DataPair>,
-    pub data_height_adjust: Vec<DataPair>,
+    pub data_height_adjust: Vec<DataTriplet>,
     pub data_tps_temp_map: Vec<DataTriplet>,
     pub data_tps_temp_mult: Vec<DataTriplet>,
+    pub data_avg_r: Vec<DataTriplet>,
 }
 impl Default for Segment{
     fn default() -> Self {
@@ -55,13 +58,16 @@ impl Default for Segment{
             path: "".to_string(),
             portion: 0.0,
             temp_max: 0.0,
+            temp_hot_side: 0.0,
+            temp_cold_side: 0.0,
             density: 0.0,
             tickness: 0.0,
             areal_density: 0.0,
             data_csv: Vec::<DataPair>::new(),
-            data_height_adjust: Vec::<DataPair>::new(),
+            data_height_adjust: Vec::<DataTriplet>::new(),
             data_tps_temp_map: Vec::<DataTriplet>::new(),
             data_tps_temp_mult: Vec::<DataTriplet>::new(),
+            data_avg_r: Vec::<DataTriplet>::new(),
         }
     }
 }

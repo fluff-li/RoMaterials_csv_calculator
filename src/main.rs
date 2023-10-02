@@ -23,26 +23,34 @@ fn main() -> std::io::Result<()> {
     let tps_paths = get_files("bib/structures".to_string(), OsString::from("csv"));
 
     for path in tps_paths.iter() {
-        let mut tps = read_structure_csv(path);
+        let mut tps = read_tps_csv(path);
         tps.temp_list2 = temp_list.clone();
 
         for segment in tps.segments.iter_mut() {
-            read_material_csv(segment);
+            read_material_csv(segment).unwrap();
             fill_gaps_in_csv(&mut segment.data_csv);
             segment.areal_density = segment.density * segment.tickness * segment.portion;
-            segment.data_height_adjust = adjust_to_height(segment.areal_density, segment.tickness * segment.portion, &segment.data_csv);
-            segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp_max, segment.temp_max, &segment.data_height_adjust, &temp_list);            
+            
+            //println!("{}, {}", tps.name, segment.name);
+            segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp_max, segment.temp_hot_side, &segment.data_csv, &temp_list);
+            segment.data_height_adjust = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
+            segment.data_avg_r = avg_conductivity(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side);
+
+            let data_tmp0 = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
+            let data_tmp = avg_conductivity(segment.tickness, &data_tmp0, segment.temp_hot_side, segment.temp_cold_side);
+            output_data_Triplet(&(segment.name.to_owned() + "_data_tmp"), &data_tmp, OUTPUT_DIRECTORY.to_string() + "structures/" + &tps.name).unwrap();
+
         }
         calc_tps_height_density(&mut tps);
         for segment in tps.segments.iter_mut() {
-            segment.data_tps_temp_mult = tps_value_mult(tps.areal_density,segment.areal_density ,&segment.data_tps_temp_map);
+            segment.data_tps_temp_mult = tps_value_mult(tps.areal_density,segment.areal_density ,&segment.data_avg_r);
         }
         tps.data = calc_tps_data(&tps, &temp_list);
 
         output_tps(&tps, OUTPUT_DIRECTORY.to_string() + "structures/").unwrap();
         tps_list.push(tps);
     }
-
+    
 
     let part_paths = get_files("bib/part".to_string(), OsString::from("csv"));
     for path in part_paths.iter() {
@@ -54,7 +62,7 @@ fn main() -> std::io::Result<()> {
                     part.tps_list_min.push((structure.clone(), *portion
                                             , map_component_data_to_assembly(part.temp, structure.temp_max, &structure.data, &temp_list)));
                     part_list_min.remove(i);
-                    output_data_Triplet(&structure.name,&part.tps_list_min.last().unwrap().2, "out/test/".to_owned() + &part.name + "/expanded_list2");
+                    output_data_Triplet(&structure.name,&part.tps_list_min.last().unwrap().2, "out/test/".to_owned() + &part.name + "/expanded_list2").unwrap();
                     break;
                 }
             }
@@ -205,20 +213,19 @@ fn fill_gaps_in_csv(thermal_list: &mut Vec<DataPair>,) {
 }
 
 /// Adjust read values to thickness & density
-fn adjust_to_height (areal_density: f32, height: f32, data: &Vec<DataPair> ) -> Vec<DataPair> {
-    let mut data_new = Vec::<DataPair>::new();
+fn adjust_to_height ( height: f32, data: &Vec<DataTriplet> ) -> Vec<DataTriplet> {
+    let mut data_new = Vec::<DataTriplet>::new();
     for row in data.iter() {
-        let r_th;
-        if row.1.R_th != 0.0 {
-            r_th = height / row.1.R_th * 1000.0;
+        let mut data = row.thermal_data.clone();
+        if row.thermal_data.R_th != 0.0 {
+            data.R_th = height / row.thermal_data.R_th * 1000.0;
         } else {
-            r_th = 0.0;
+
         }
-        data_new.push(DataPair(row.0, Data{cp: row.1.cp, R_th: r_th, e: row.1.e }));
+        data_new.push(DataTriplet{temp_part: row.temp_part, temp_sub_part: row.temp_sub_part, thermal_data: data});
     }
     data_new
 }
-
 /// expand list in to predefined range & steps and fill in the gaps
 fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<DataTriplet>{
     //let mut data_adjusted: Vec<DataTriplet> = Vec::<DataTriplet>::with_capacity(ref_temp_list.len());
@@ -278,7 +285,7 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
 
     }
 
-    // fill copy of last usable to fill the rest
+    // fill copy of last usable entry to fill the rest
     for temp in ref_temp_list.iter().skip(index){
         let temp_sub_part = data_adjusted.last().unwrap().temp_sub_part / data_adjusted.last().unwrap().temp_part * temp;
         data_adjusted.push(DataTriplet { temp_part: *temp, thermal_data: data_adjusted.last().unwrap().thermal_data, temp_sub_part: temp_sub_part})
@@ -407,4 +414,57 @@ fn map_component_data_to_assembly(assemb_temp_max: f32, comp_temp_max: f32, comp
     }
     //data_new
     fit_list(&data_new, &temp_list)
+}
+
+/// Returns a new list with an average conductivity accross segment for given cold & Hot Side Temperature 
+pub fn avg_conductivity(lenght: f32, data: &Vec<DataTriplet>, temp_max: f32, temp_min: f32 ) -> Vec<DataTriplet>{
+    let mut data_out= data.clone();
+    let mut steps = Vec::<(f32,f32,f32,f32)>::new();
+
+    let temp_frac = temp_min / temp_max;
+
+    // set a refrence k for q = 1;
+    let mut k_ref = 0.0;
+    let mut t_ref = 0.0;
+    // q = T * d/ k; -> d = q * k / T
+    for (i, _row) in data.iter().enumerate() {
+        if temp_max <= data[i].temp_sub_part + 25.0 && temp_max >= data[i].temp_sub_part -25.0 {
+            t_ref = data[i].temp_sub_part ;
+            if data[i].thermal_data.R_th == 0.0 {
+                return data.clone();
+            }
+            k_ref = lenght / data[i].thermal_data.R_th  * 1000.0;
+            //println!("k_ref {}, t_ref {} ",k_ref ,t_ref);
+            break;
+        }
+    }
+    
+
+    // extrapolate d value for the rest
+    let q_ref  = t_ref * 1.0 / k_ref; // 1.0 = d_ref
+    let mut d_sum: f32 = 0.0;
+    for row in data.iter() {
+        let k = lenght / row.thermal_data.R_th * 1000.0;
+        let d = q_ref * k / row.temp_sub_part ;
+        d_sum += d;
+        //println!("k_ref {}, t_ref {}",k ,row.temp_sub_part);
+        steps.push((row.temp_sub_part ,k , d, d_sum));
+    }
+    
+    //let mut steps2 = Vec::<(f32,f32,f32)>::new();
+    for (n, row) in data_out.iter_mut().enumerate() {
+        let mut i = 0;
+        let mut r_th = 0.0;
+        let mut d_sum = 0.0;
+        while i < steps.len(){
+            if steps[i].0 >= steps[n].0 * temp_frac && steps[i].0 <= steps[n].0 {
+                r_th += steps[i].2  / steps[i].1 * 1000.0;
+                d_sum += steps[i].2
+            }
+            i += 1;
+        }
+        //steps2.push((steps[n].0, r_th / d_sum * lenght , steps[n].0 * temp_frac));
+        row.thermal_data.R_th = r_th / d_sum * lenght;
+    }
+    data_out
 }

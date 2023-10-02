@@ -28,7 +28,7 @@ pub fn read_temp_list_csv2(file_path: &PathBuf) -> Vec<f32> {
     let mut rdr = 
     match csv::Reader::from_path(file_path) {
         Ok(result) => {result},
-        Err(err) =>  {println!("Error while reading Results.csv {}", err);
+        Err(err) =>  {println!("Error while reading {:?} {}", &file_path, err);
                             process::exit(1);}
     };
     
@@ -139,7 +139,7 @@ pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32)>, Vec<(Str
 }
 
 
-pub fn read_structure_csv(file_path: &PathBuf) -> TPS {
+pub fn read_tps_csv(file_path: &PathBuf) -> TPS {
 
     let mut layer_top = Segment{..Default::default()};
     let mut layers = Vec::<Segment>::new();
@@ -172,29 +172,49 @@ pub fn read_structure_csv(file_path: &PathBuf) -> TPS {
                                         Err(err) => {println!("{} Error while parsing Temperature to float", err);
                                             process::exit(1);},
                                     };
-                             } 
-            "Top Layer" =>  { layer_top.path = record[1].to_string();
-                              layer_top.portion = match record[2].parse::<f32>() {
+                             }
+            "Top Layer" =>  {   layer_top.path = record[1].to_string();
+                                layer_top.portion = match record[2].parse::<f32>() {
                                         Ok(result) =>  result,
                                         Err(err) => {println!("{} Error while parsing Top Portion to float", err);
                                             process::exit(1);},
                                     };
-                              layer_top.tickness = match record[3].parse::<f32>() {
+                                layer_top.tickness = match record[3].parse::<f32>() {
                                         Ok(result) =>  result,
                                         Err(err) => {println!("{} Error while parsing Top Tickness to float", err);
                                             process::exit(1);},
                                     };
+                                layer_top.temp_hot_side = match record[4].parse::<f32>() {
+                                        Ok(result) =>  result,
+                                        Err(err) => {println!("{} Error while parsing Temp Hot Side to float", err);
+                                            process::exit(1);},
+                                    };
+                                layer_top.temp_cold_side = match record[5].parse::<f32>() {
+                                        Ok(result) =>  result,
+                                        Err(err) => {println!("{} Error while parsing Temp Cold Side to float", err);
+                                            process::exit(1);},
+                                    };
                             },
-            "Layer" =>       { layers.push(Segment{..Default::default()});
-                               layers.last_mut().unwrap().path = record[1].to_string();
-                               layers.last_mut().unwrap().portion = match record[2].parse::<f32>() {
+            "Layer" =>       {  layers.push(Segment{..Default::default()});
+                                layers.last_mut().unwrap().path = record[1].to_string();
+                                layers.last_mut().unwrap().portion = match record[2].parse::<f32>() {
                                         Ok(result) =>  result,
                                         Err(err) => {println!("{} Error while parsing Portion to float", err);
                                             process::exit(1);},
                                     };
-                               layers.last_mut().unwrap().tickness = match record[3].parse::<f32>() {
+                                layers.last_mut().unwrap().tickness = match record[3].parse::<f32>() {
                                         Ok(result) =>  result,
                                         Err(err) => {println!("{} Error while parsing Tickness to float", err);
+                                            process::exit(1);},
+                                    };
+                                layers.last_mut().unwrap().temp_hot_side = match record[4].parse::<f32>() {
+                                        Ok(result) =>  result,
+                                        Err(err) => {println!("{} Error while parsing Temp Hot Side to float", err);
+                                            process::exit(1);},
+                                    };
+                                layers.last_mut().unwrap().temp_cold_side = match record[5].parse::<f32>() {
+                                        Ok(result) =>  result,
+                                        Err(err) => {println!("{} Error while parsing Temp Cold Side to float", err);
                                             process::exit(1);},
                                     };
                             },
@@ -287,6 +307,25 @@ pub fn output_layer(layer: &Segment, path: &String, temp_list: &Vec<f32>) -> Res
     wtr.flush()?;
 
 
+    let output_file = path.clone() + "/" + &layer.name + "_avg_r.csv";
+    let mut wtr = match csv::Writer::from_path(&output_file){
+        Ok(result) => {result},
+        Err(err) =>  {println!("Error while reading Results.csv {}", err);
+                            process::exit(1);}
+    };
+    /// TODO write this into seperate txt file along with csv
+    //wtr.write_record(&["Name", &layer.name, "", "",""])?;
+    wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity", "Temp Layer"])?;
+    
+    //    thermal_prop_layer_temp
+    //    thermal_prop_struct_temp
+    //    thermal_prop_struct_temp_frac
+    for  data in layer.data_avg_r.iter() {
+        wtr.serialize((data.temp_part, data.thermal_data.cp, data.thermal_data.R_th, data.thermal_data.e, data.temp_sub_part))?;
+    }
+    wtr.flush()?;
+
+
     let output_file = path.clone() + "/" + &layer.name + "_height_adjusted.csv";
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
@@ -295,13 +334,13 @@ pub fn output_layer(layer: &Segment, path: &String, temp_list: &Vec<f32>) -> Res
     };
     /// TODO write this into seperate txt file along with csv
     //wtr.write_record(&["Name", &layer.name, "", "",""])?;
-    wtr.write_record(&["Temp Layer", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
+    wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity", "Temp Layer"])?;
     
     //    thermal_prop_layer_temp
     //    thermal_prop_struct_temp
     //    thermal_prop_struct_temp_frac
-    for (i, data) in layer.data_height_adjust.iter().enumerate() {
-        wtr.serialize((data.0, data.1.cp, data.1.R_th, data.1.e ))?;
+    for  data in layer.data_height_adjust.iter() {
+        wtr.serialize((data.temp_part, data.thermal_data.cp, data.thermal_data.R_th, data.thermal_data.e, data.temp_sub_part))?;
     }
     wtr.flush()?;
 
