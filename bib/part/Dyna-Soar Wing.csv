@@ -1,0 +1,11 @@
+Name,Dyna-Soar X-20 Wing,
+Description,,
+Temperature,1800,
+CostPerArea,0,
+HasAblator,false,
+Min,Name,Portion
+Structure,TZM,0.65
+Structure,Rene_Panel,0.35
+Max,Name,Portion
+Structure,TZM,0.65
+Structure,Rene_Panel,0.35

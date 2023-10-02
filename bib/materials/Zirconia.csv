@@ -1,0 +1,7 @@
+Name,Zirconia,,
+Temperature Limit,2000,,
+Density,5560,,
+Temperature,Specific Heat,Thermal Conductivity,Emissivity
+273,456,1.85,0.8
+773,456,1.85,0.8
+

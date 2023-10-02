@@ -1,0 +1,13 @@
+Name,Dyna-Soar X-20 Cockpit,
+Description,,
+Temperature,2000,
+CostPerArea,0,
+HasAblator,false,
+Min,Name,Portion
+Structure,Zirconia,0.1
+Structure,TZM,0.75
+Structure,Rene_Panel,0.15
+Max,Name,Portion
+Structure,Zirconia,0.1
+Structure,TZM,0.75
+Structure,Rene_Panel,0.15

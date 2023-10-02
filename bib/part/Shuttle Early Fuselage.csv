@@ -6,9 +6,9 @@ CostPerArea,0,
 HasAblator,false,
 Min,Name,Portion
 Structure,HSRI_LI-900_min,0.40
-Structure,LRSI,0.175
-Structure,FRSI,0.425
+Structure,LRSI,0.200
+Structure,FRSI,0.400
 Max,Name,Portion
 Structure,HSRI_LI-900_max,0.40
-Structure,LRSI,0.175
-Structure,FRSI,0.425
+Structure,LRSI,0.200
+Structure,FRSI,0.400

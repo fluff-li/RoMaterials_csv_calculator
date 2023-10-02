@@ -1,0 +1,5 @@
+Name,Aluminium_Frame,,,,
+Temperature,450,,,,
+,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
+Top Layer,bib/materials/Aluminium_2024.csv,1,0,450,450
+
