@@ -296,24 +296,24 @@ fn calculate_part(part: &mut Part) {
     part.height_max0 = f32::INFINITY;
     part.height_max1 = 0.0;
 
-    for (structure, portion, data) in part.tps_list_min.iter() {
-        part.areal_density_min += structure.areal_density * portion;
+    for (tps, portion, _data) in part.tps_list_min.iter() {
+        part.areal_density_min += tps.areal_density * portion;
 
-        if part.height_min0 > structure.tickness {
-            part.height_min0 = structure.tickness;
+        if part.height_min0 > tps.tickness {
+            part.height_min0 = tps.tickness;
         }
-        if part.height_min1 < structure.tickness {
-            part.height_min1 = structure.tickness;
+        if part.height_min1 < tps.tickness {
+            part.height_min1 = tps.tickness;
         }   
     }
-    for (structure, portion, data) in part.tps_list_max.iter() {
-        part.areal_density_max += structure.areal_density * portion;
+    for (tps, portion, _data) in part.tps_list_max.iter() {
+        part.areal_density_max += tps.areal_density * portion;
 
-        if part.height_max0 > structure.tickness {
-            part.height_max0 = structure.tickness;
+        if part.height_max0 > tps.tickness {
+            part.height_max0 = tps.tickness;
         }
-        if part.height_max1 < structure.tickness {
-            part.height_max1 = structure.tickness;
+        if part.height_max1 < tps.tickness {
+            part.height_max1 = tps.tickness;
         }   
     }
 
@@ -322,22 +322,22 @@ fn calculate_part(part: &mut Part) {
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for (structure, portion, data_adjusted) in part.tps_list_min.iter() {
-            cp += data_adjusted[i].thermal_data.cp * structure.areal_density / part.areal_density_min * portion * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
+        for (tps, portion, data_adjusted) in part.tps_list_min.iter() {
+            cp += data_adjusted[i].thermal_data.cp * tps.areal_density / part.areal_density_min * portion * (tps.temp_max - TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (part.temp - TEMPERATURE_EQUALIZED) / (tps.temp_max - TEMPERATURE_EQUALIZED);
             e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
             //e +=  data_adjusted[i].thermal_data.e * portion * ( f32::powf(structure.temp_max,4.0) - f32::powf(0.0, 4.0) ) / ( f32::powf(part.temp,4.0) - f32::powf(0.0, 4.0) );
         }
         part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
-    }
+    } 
     for (i, temp) in part.tps_list_max[1].0.temp_list2.iter().enumerate() {
         let mut cp = 0.0;
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for (structure, portion, data_adjusted) in part.tps_list_max.iter() {
-            cp += data_adjusted[i].thermal_data.cp * structure.areal_density / part.areal_density_max * portion * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (structure.temp_max - TEMPERATURE_EQUALIZED) / (part.temp - TEMPERATURE_EQUALIZED);
+        for (tps, portion, data_adjusted) in part.tps_list_max.iter() {
+            cp += data_adjusted[i].thermal_data.cp * tps.areal_density / part.areal_density_max * portion * (tps.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (part.temp - TEMPERATURE_EQUALIZED) / (tps.temp_max - TEMPERATURE_EQUALIZED);
             e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
         }
         part.data_max.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
@@ -380,11 +380,11 @@ fn calc_tps_data(tps: &TPS, temp_list: &Vec<f32>) -> Vec<DataPair> {
 /// multiplyer on component values based om assembly temperature & density
 fn tps_value_mult (assembly_density: f32, segment_density: f32, segment_data: &Vec<DataTriplet>) -> Vec<DataTriplet>{
     let mut new_tripl = Vec::<DataTriplet>::new();
+    let density_frac = segment_density / assembly_density;
 
     for row in segment_data.iter() {
-        
         new_tripl.push(DataTriplet{temp_part: row.temp_part, temp_sub_part: row.temp_sub_part, 
-                        thermal_data: Data{cp: row.thermal_data.cp * row.temp_sub_part * segment_density / (row.temp_part * assembly_density),
+                        thermal_data: Data{cp: row.thermal_data.cp * row.temp_sub_part * density_frac / row.temp_part,
                                             R_th: row.thermal_data.R_th, //prop_list.thermal_data.R_th *= prop_list.temp_sub_part / prop_list.temp_part;
                                             e: row.thermal_data.e,
         }})
