@@ -442,12 +442,13 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
 
 pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&path)?;
+    fs::create_dir_all(path.to_owned() + "csv/")?;
     let mut index = 0;
 
-    let output_file = path.clone() + &part.name + "_min.csv";
+    let output_file = path.clone() + "csv/" + &part.name + "_min.csv";
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
-        Err(err) =>  {println!("Error while reading Results.csv {}", err);
+        Err(err) =>  {println!("Error while writing {}: {}", path.clone() + "csv/" + &part.name + "_min.csv", err);
                             process::exit(1);}
     };
 
@@ -465,10 +466,10 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     wtr.flush()?;
 
 
-    let output_file = path.clone() + &part.name + "_max.csv";
+    let output_file = path.clone() + "csv/" + &part.name + "_max.csv";
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
-        Err(err) =>  {println!("Error while reading Results.csv {}", err);
+        Err(err) =>  {println!("Error while writing {}: {}", path.clone() + "csv/" + &part.name + "_max.csv", err);
                             process::exit(1);}
     };
 
