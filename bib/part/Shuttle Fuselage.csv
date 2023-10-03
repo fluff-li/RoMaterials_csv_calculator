@@ -1,0 +1,14 @@
+Name,Shuttle Fuselage,
+Description,OV-103 Discovery +,
+Temperature,1590,
+AbsorbationConstant,0.32,
+CostPerArea,0,
+HasAblator,false,
+Min,Name,Portion
+Structure,HRSI_LI-900,0.40
+Structure,AFRSI,0.200
+Structure,FRSI,0.400
+Max,Name,Portion
+Structure,HRSI_LI-900,0.40
+Structure,AFRSI,0.200
+Structure,FRSI,0.400

@@ -1,0 +1,8 @@
+Name,AFRSI,,,,
+Temperature,922,,,,
+Min,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
+Top Layer,bib/materials/AFRSI.csv,1,0.01015,922,330
+Layer,bib/materials/RTV.csv,1,0.0002,330,330
+Max,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
+Top Layer,bib/materials/AFRSI.csv,1,0.01015,922,330
+Layer,bib/materials/RTV.csv,1,0.0002,330,330

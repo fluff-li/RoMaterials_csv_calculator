@@ -1,7 +1,0 @@
-Name,LRSI,,,,
-Temperature,1330,,,,
-,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
-Top Layer,bib/materials/RCG-White.csv,1,0.000254,1330,1330
-Layer,bib/materials/LI-900.csv,1,0.0254,1330,440
-Layer,bib/materials/SIP.csv,1,0.002,440,440
-Layer,bib/materials/RTV.csv,1.8,0.00019,440,440

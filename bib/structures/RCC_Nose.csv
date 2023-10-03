@@ -1,0 +1,10 @@
+Name,RCC_Nose,,,,
+Temperature,1920,,,,
+Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/RCC.csv,1,0.0127,1920,1850
+Layer,bib/materials/Inconel_601.csv,1,0.0001,1500,1500
+Layer,bib/materials/Cerachrome-12.csv,1,0.12,1500,400
+Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/RCC.csv,1,0.0127,1920,1850
+Layer,bib/materials/Inconel_601.csv,1,0.0001,1500,1500
+Layer,bib/materials/Cerachrome-12.csv,1,0.19,1500,400

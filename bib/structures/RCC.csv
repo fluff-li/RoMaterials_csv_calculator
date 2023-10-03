@@ -1,7 +1,12 @@
-Name,RCC_min,,,,
+Name,RCC,,,,
 Temperature,1920,,,,
-,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
-Top Layer,bib/materials/RCC.csv,1,0.013335,1920,1920
-Layer,bib/materials/RCC.csv,1,0.0056007,1920,1500
+Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/RCC.csv,1,0.013335,1920,1850
+Layer,bib/materials/RCC.csv,0.037338,0.15,1850,1800
 Layer,bib/materials/Inconel_601.csv,1,0.0001,1500,1500
-Layer,bib/materials/Cerachrome-12.csv,1,0.19,1500,420
+Layer,bib/materials/Cerachrome-12.csv,1,0.0672,1500,400
+Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/RCC.csv,1,0.01905,1920,1850
+Layer,bib/materials/RCC.csv,0.037338,0.15,1850,1800
+Layer,bib/materials/Inconel_601.csv,1,0.0001,1500,1500
+Layer,bib/materials/Cerachrome-12.csv,1,0.19,1500,400

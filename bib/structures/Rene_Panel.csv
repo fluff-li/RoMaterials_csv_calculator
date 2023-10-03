@@ -1,5 +1,8 @@
 Name,Rene_Panel,,,,
 Temperature,1255.15,,,,
-,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/PFR-6.csv,1,0.0,1255,1255
+Layer,bib/materials/René_41.csv,1,0.0005,1255,900
+Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
 Top Layer,bib/materials/PFR-6.csv,1,0.0,1255,1255
 Layer,bib/materials/René_41.csv,1,0.0005,1255,900

@@ -1,5 +1,8 @@
 Name,FRSI,,,,
 Temperature,506,,,,
-,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
+Min,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
+Top Layer,bib/materials/FRSI.csv,1,0.01015,506,330
+Layer,bib/materials/RTV.csv,1,0.0002,400,330
+Max,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
 Top Layer,bib/materials/FRSI.csv,1,0.01015,506,330
 Layer,bib/materials/RTV.csv,1,0.0002,400,330

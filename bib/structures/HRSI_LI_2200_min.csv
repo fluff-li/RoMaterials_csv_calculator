@@ -1,7 +1,0 @@
-Name,HRSI_LI-2200_min,,,,
-Temperature,1640,,,,
-,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
-Top Layer,bib/materials/RCG.csv,1,0.000254,1640,1640
-Layer,bib/materials/LI-2200.csv,1,0.0508,1640,440
-Layer,bib/materials/SIP.csv,1,0.002,440,440
-Layer,bib/materials/RTV.csv,1.8,0.00019,440,440
