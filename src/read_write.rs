@@ -1,5 +1,6 @@
 use super::data_holder::*;
 
+use csv::StringRecord;
 use std::{
     fs,
     ffi::OsString,
@@ -140,18 +141,10 @@ pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32)>, Vec<(Str
 
 
 pub fn read_tps_csv(file_path: &PathBuf) -> TPS {
-
-    let mut layer_top = Segment{..Default::default()};
-    let mut layers = Vec::<Segment>::new();
-    let mut structure = TPS{
-        name: "".to_string(),
-        temp_max: 0.0,
-        data: Vec::<DataPair>::new(),
-        areal_density: 0.0,
-        tickness: 0.0,
-        temp_list2: Vec::<f32>::new(),
-        segments: Vec::<Segment>::new()
-    };
+    let mut read_max = false;
+    let mut layers_min = Vec::<Segment>::new();
+    let mut layers_max = Vec::<Segment>::new();
+    let mut structure = TPS {..Default::default()};
     let mut rdr = 
     match csv::ReaderBuilder::new().has_headers(false).from_path(&file_path) {
         Ok(result) => {result},
@@ -167,56 +160,26 @@ pub fn read_tps_csv(file_path: &PathBuf) -> TPS {
         };
         match &record[0] {
             "Name" => structure.name = record[1].to_string(),
-            "Temperature" => { structure.temp_max = match record[1].parse::<f32>() {
+            "Temperature" => { structure.temp = match record[1].parse::<f32>() {
                                         Ok(result) =>  result,
                                         Err(err) => {println!("{} Error while parsing Temperature to float", err);
                                             process::exit(1);},
                                     };
                              }
-            "Top Layer" =>  {   layer_top.path = record[1].to_string();
-                                layer_top.portion = match record[2].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Top Portion to float", err);
-                                            process::exit(1);},
-                                    };
-                                layer_top.tickness = match record[3].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Top Tickness to float", err);
-                                            process::exit(1);},
-                                    };
-                                layer_top.temp_hot_side = match record[4].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Temp Hot Side to float", err);
-                                            process::exit(1);},
-                                    };
-                                layer_top.temp_cold_side = match record[5].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Temp Cold Side to float", err);
-                                            process::exit(1);},
-                                    };
+            "Min" =>        read_max = false,
+            "Max" =>        read_max = true,
+            "Top Layer" =>  {   if read_max {
+                                    structure.segments_max.push(read_segment(&record));
+                                } else {
+                                    structure.segments_min.push(read_segment(&record));
+                                }
                             },
-            "Layer" =>       {  layers.push(Segment{..Default::default()});
-                                layers.last_mut().unwrap().path = record[1].to_string();
-                                layers.last_mut().unwrap().portion = match record[2].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Portion to float", err);
-                                            process::exit(1);},
-                                    };
-                                layers.last_mut().unwrap().tickness = match record[3].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Tickness to float", err);
-                                            process::exit(1);},
-                                    };
-                                layers.last_mut().unwrap().temp_hot_side = match record[4].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Temp Hot Side to float", err);
-                                            process::exit(1);},
-                                    };
-                                layers.last_mut().unwrap().temp_cold_side = match record[5].parse::<f32>() {
-                                        Ok(result) =>  result,
-                                        Err(err) => {println!("{} Error while parsing Temp Cold Side to float", err);
-                                            process::exit(1);},
-                                    };
+            "Layer" =>      {  if read_max {
+                                    layers_max.push(read_segment(&record));
+                                } else {
+                                    layers_min.push(read_segment(&record));
+                                }
+
                             },
             &_ => {}
         }
@@ -224,15 +187,40 @@ pub fn read_tps_csv(file_path: &PathBuf) -> TPS {
     if structure.name == "" {
         {println!("Error Structure file lacks \"Name\" entry"); process::exit(1);}
     }
-    if structure.temp_max == 0.0 {
+    if structure.temp == 0.0 {
         {println!("Error Structure file lacks \"Temperature\" entry"); process::exit(1);}
     }
-    if layer_top.path == "" {
-        {println!("Error Structure file lacks \"Top Layer\" entry"); process::exit(1);}
-    }
-    structure.segments.push(layer_top);
-    structure.segments.append(&mut layers);
+    structure.segments_min.append(&mut layers_min);
+    if !layers_max.is_empty() {
+        structure.segments_max.append(&mut layers_max);
+    } 
     structure
+}
+
+fn read_segment(record: &StringRecord) -> Segment {
+    let mut segment = Segment{..Default::default()};
+    segment.path = record[1].to_string();
+    segment.portion = match record[2].parse::<f32>() {
+            Ok(result) =>  result,
+            Err(err) => {println!("{} Error while parsing Top Portion to float", err);
+                process::exit(1);},
+        };
+    segment.tickness = match record[3].parse::<f32>() {
+            Ok(result) =>  result,
+            Err(err) => {println!("{} Error while parsing Top Tickness to float", err);
+                process::exit(1);},
+        };
+    segment.temp_hot_side = match record[4].parse::<f32>() {
+            Ok(result) =>  result,
+            Err(err) => {println!("{} Error while parsing Temp Hot Side to float", err);
+                process::exit(1);},
+        };
+    segment.temp_cold_side = match record[5].parse::<f32>() {
+            Ok(result) =>  result,
+            Err(err) => {println!("{} Error while parsing Temp Cold Side to float", err);
+                process::exit(1);},
+        };
+    segment
 }
 
 pub fn read_material_csv(segment: &mut Segment) -> Result<(), Box<dyn Error>> {
@@ -292,7 +280,7 @@ pub fn read_material_csv(segment: &mut Segment) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn output_layer(layer: &Segment, path: &String, temp_list: &Vec<f32>) -> Result<(), Box<dyn Error>> {
+pub fn output_layer(layer: &Segment, path: &String) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&path)?;
     let output_file = path.clone() + "/" + &layer.name + "_csv_data.csv";
 
@@ -393,9 +381,10 @@ pub fn output_layer(layer: &Segment, path: &String, temp_list: &Vec<f32>) -> Res
 
 pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&path)?;
-
-    // write structure ino path
-    let output_file = path.clone() + &tps.name + ".csv";
+    fs::create_dir_all(path.to_owned() + "csv")?;
+    let mut index = 0;
+    // write structure into path
+    let output_file = path.clone() + "csv/" + &tps.name + "_min.csv";
 
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
@@ -408,34 +397,78 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
     //wtr.serialize((structure.name.clone(), structure.temp, structure.tickness, structure.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
     
-    for data in tps.data.iter() {
+    for (i, data) in tps.data_min.iter().enumerate() {
         wtr.serialize((data.0, data.1.cp, data.1.R_th, data.1.e))?;
+        if data.0 >= tps.temp - 25.0 && data.0 <= tps.temp + 25.0 {
+            index = i;
+        }
     }
-    wtr.flush()?;    
-
-    // write layer into strucure Folder
-    let directory = (&path).to_string() + &tps.name;
-    fs::create_dir_all(&directory)?;
-    for layer in tps.segments.clone() {
-        output_layer(&layer,&directory, &tps.temp_list2)?;
-    }
+    wtr.flush()?;
 
 
-    let output_file = path.clone() + &tps.name + ".txt";
-    wtr = match csv::Writer::from_path(&output_file){
+    let output_file = path.clone() + "csv/" + &tps.name + "_max.csv";
+
+    let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
         Err(err) =>  {println!("Error while reading Results.csv {}", err);
                             process::exit(1);}
     };
-    wtr.serialize(("Name", &tps.name))?;
-    wtr.serialize(("Max Temp", tps.temp_max))?;
-    wtr.serialize(("Areal Density", tps.areal_density))?;
-    wtr.serialize(("Height Max", tps.tickness))?;
-    wtr.serialize(("Layer", "Portion * Thickness"))?;
-    for layer in &tps.segments {
-        wtr.serialize((&layer.name, layer.tickness * layer.portion))?;    
+
+    /// TODO write this into seperate txt file along with csv
+    //wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
+    //wtr.serialize((structure.name.clone(), structure.temp, structure.tickness, structure.areal_density))?;
+    wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
+    
+    for (i, data) in tps.data_max.iter().enumerate() {
+        wtr.serialize((data.0, data.1.cp, data.1.R_th, data.1.e))?;
+        if data.0 >= tps.temp - 25.0 && data.0 <= tps.temp + 25.0 {
+            index = i;
+        }
     }
     wtr.flush()?;
+
+    // write layer into strucure Folder
+    let directory = (&path).to_string() + &tps.name;
+    fs::create_dir_all(&directory)?;
+    for layer in tps.segments_min.clone() {
+        output_layer(&layer,&directory,)?;
+    }
+
+
+    let output_file = path.clone() + &tps.name + ".cfg";
+    let mut file = File::create(output_file)?;
+
+    writeln!(file, "ROThermal_PRESET\n{{")?;
+    writeln!(file, "    name = {}" , tps.name)?;
+    writeln!(file, "    description = {}" , "")?;
+    writeln!(file, "    type = Skin\n")?;
+
+    writeln!(file, "    skinMaxTemp = {}" , tps.temp)?;
+    writeln!(file, "    emissiveConstant = {}" , tps.data_min[index].1.e)?;
+    writeln!(file, "    absorptiveConstant = {}\n" , tps.absorbation_const)?;
+
+    writeln!(file, "    skinHeightMin = {:0.4}" , tps.tickness_min)?;
+    writeln!(file, "    skinMassPerArea = {}" , tps.areal_density_min)?;
+    writeln!(file, "    skinSpecificHeatCapacity = {}" , tps.data_min[index].1.cp)?;
+    writeln!(file, "    thermalInsulance = {}\n" , f32::powf(tps.data_min[index].1.R_th, -1.0))?;
+
+    writeln!(file, "    skinHeightMax = {:0.4}" , tps.tickness_max)?;
+    writeln!(file, "    skinMassPerAreaMax = {}" , tps.areal_density_max)?;
+    writeln!(file, "    skinSpecificHeatCapacityMax = {}" , tps.data_max[index].1.cp)?;
+    writeln!(file, "    thermalInsulanceMax = {}\n" , f32::powf(tps.data_max[index].1.R_th, -1.0))?;
+
+    writeln!(file, "    disableModAblator = {}" , tps.has_ablator)?;
+    writeln!(file, "    costPerArea = {}" , tps.cost_per_area)?;
+    writeln!(file, "}}")?;
+
+    writeln!(file, "// Min: \n// Segment, Height")?;
+    for segment in &tps.segments_min {
+        writeln!(file, "// {}, {}",&segment.name, segment.tickness)?;    
+    }
+    writeln!(file, "\n// Max: \n// Segment, Height")?;
+    for segment in &tps.segments_max {
+        writeln!(file, "// {}, {}",&segment.name, segment.tickness)?;    
+    }
 
     Ok(())
 }

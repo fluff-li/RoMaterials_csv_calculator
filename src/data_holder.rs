@@ -26,12 +26,40 @@ pub struct Part {
 #[derive(Clone)]
 pub struct TPS {
     pub name: String,
-    pub temp_max: f32,
-    pub data: Vec<DataPair>,
-    pub areal_density: f32,
-    pub tickness: f32,
-    pub temp_list2: Vec<f32>,
-    pub segments: Vec<Segment>,
+
+    pub temp: f32,
+    pub absorbation_const: f32,
+    pub data_min: Vec<DataPair>,
+    pub areal_density_min: f32,
+    pub tickness_min: f32,
+    pub segments_min: Vec<Segment>,
+
+    pub data_max: Vec<DataPair>,
+    pub areal_density_max: f32,
+    pub tickness_max: f32,
+    pub segments_max: Vec<Segment>,
+
+    pub has_ablator: String,
+    pub cost_per_area: f32,
+}
+impl Default for TPS{
+    fn default() -> Self {
+        TPS {
+            name: "".to_string(),
+            temp: 0.0,
+            absorbation_const: 0.0,
+            data_min: Vec::<DataPair>::new(),
+            areal_density_min: 0.0,
+            tickness_min: 0.0,
+            segments_min: Vec::<Segment>::new(),        
+            data_max: Vec::<DataPair>::new(),
+            areal_density_max: 0.0,
+            tickness_max: 0.0,
+            segments_max: Vec::<Segment>::new(),       
+            has_ablator: "false".to_string(),
+            cost_per_area: 0.0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

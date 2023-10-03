@@ -24,15 +24,29 @@ fn main() -> std::io::Result<()> {
 
     for path in tps_paths.iter() {
         let mut tps = read_tps_csv(path);
-        tps.temp_list2 = temp_list.clone();
 
-        for segment in tps.segments.iter_mut() {
+        for segment in tps.segments_min.iter_mut() {
             read_material_csv(segment).unwrap();
             fill_gaps_in_csv(&mut segment.data_csv);
             segment.areal_density = (segment.density * segment.tickness + segment.additive_areal_weight) * segment.portion ;
             
             //println!("{}, {}", tps.name, segment.name);
-            segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp_max, segment.temp_hot_side, &segment.data_csv, &temp_list);
+            segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp, segment.temp_hot_side, &segment.data_csv, &temp_list);
+            segment.data_height_adjust = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
+            segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side);
+
+            let data_tmp0 = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
+            let data_tmp = avg_cp_k(segment.tickness, &data_tmp0, segment.temp_hot_side, segment.temp_cold_side);
+            output_data_Triplet(&(segment.name.to_owned() + "_data_tmp"), &data_tmp, OUTPUT_DIRECTORY.to_string() + "structures/" + &tps.name).unwrap();
+
+        }
+        for segment in tps.segments_max.iter_mut() {
+            read_material_csv(segment).unwrap();
+            fill_gaps_in_csv(&mut segment.data_csv);
+            segment.areal_density = (segment.density * segment.tickness + segment.additive_areal_weight) * segment.portion ;
+            
+            //println!("{}, {}", tps.name, segment.name);
+            segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp, segment.temp_hot_side, &segment.data_csv, &temp_list);
             segment.data_height_adjust = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
             segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side);
 
@@ -42,10 +56,15 @@ fn main() -> std::io::Result<()> {
 
         }
         calc_tps_height_density(&mut tps);
-        for segment in tps.segments.iter_mut() {
-            segment.data_tps_temp_mult = tps_value_mult(tps.areal_density,segment.areal_density ,&segment.data_avg_r);
+        for segment in tps.segments_min.iter_mut() {
+            segment.data_tps_temp_mult = tps_value_mult(tps.areal_density_min,segment.areal_density ,&segment.data_avg_r);
         }
-        tps.data = calc_tps_data(&tps, &temp_list);
+        for segment in tps.segments_max.iter_mut() {
+            segment.data_tps_temp_mult = tps_value_mult(tps.areal_density_max,segment.areal_density ,&segment.data_avg_r);
+        }
+        tps.data_min = calc_tps_data(&tps.segments_min, &temp_list);
+        tps.data_max = calc_tps_data(&tps.segments_max, &temp_list);
+        
 
         output_tps(&tps, OUTPUT_DIRECTORY.to_string() + "structures/").unwrap();
         tps_list.push(tps);
@@ -60,7 +79,7 @@ fn main() -> std::io::Result<()> {
             for (i, (name, portion)) in part_list_min.iter_mut().enumerate() {
                 if structure.name == *name {
                     part.tps_list_min.push((structure.clone(), *portion
-                                            , map_component_data_to_assembly(part.temp, structure.temp_max, &structure.data, &temp_list)));
+                                            , map_component_data_to_assembly(part.temp, structure.temp, &structure.data_min, &temp_list)));
                     part_list_min.remove(i);
                     output_data_Triplet(&structure.name,&part.tps_list_min.last().unwrap().2, "out/test/".to_owned() + &part.name + "/expanded_list2").unwrap();
                     break;
@@ -68,8 +87,9 @@ fn main() -> std::io::Result<()> {
             }
             for (i, (name, portion)) in part_list_max.iter_mut().enumerate() {
                 if structure.name == *name {
+                    
                     part.tps_list_max.push((structure.clone(), *portion
-                                            , map_component_data_to_assembly(part.temp, structure.temp_max, &structure.data, &temp_list)));
+                                            , map_component_data_to_assembly(part.temp, structure.temp, &structure.data_max, &temp_list)));
                     part_list_max.remove(i);
                     break;
                 }
@@ -84,7 +104,7 @@ fn main() -> std::io::Result<()> {
         }
 
     
-        calculate_part(&mut part);
+        calculate_part(&mut part, &temp_list);
 
         output_part(part, OUTPUT_DIRECTORY.to_string() + "parts/");
     }
@@ -295,7 +315,7 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
 }
 
 /// calculate the part values based on data from its structures
-fn calculate_part(part: &mut Part) {
+fn calculate_part(part: &mut Part, temp_ref_list: &Vec<f32>) {
     part.areal_density_min = 0.0;
     part.areal_density_max = 0.0;
     part.height_min0 = f32::INFINITY;
@@ -304,46 +324,46 @@ fn calculate_part(part: &mut Part) {
     part.height_max1 = 0.0;
 
     for (tps, portion, _data) in part.tps_list_min.iter() {
-        part.areal_density_min += tps.areal_density * portion;
+        part.areal_density_min += tps.areal_density_min * portion;
 
-        if part.height_min0 > tps.tickness {
-            part.height_min0 = tps.tickness;
+        if part.height_min0 > tps.tickness_min {
+            part.height_min0 = tps.tickness_min;
         }
-        if part.height_min1 < tps.tickness {
-            part.height_min1 = tps.tickness;
+        if part.height_min1 < tps.tickness_min {
+            part.height_min1 = tps.tickness_min;
         }   
     }
     for (tps, portion, _data) in part.tps_list_max.iter() {
-        part.areal_density_max += tps.areal_density * portion;
+        part.areal_density_max += tps.areal_density_max * portion;
 
-        if part.height_max0 > tps.tickness {
-            part.height_max0 = tps.tickness;
+        if part.height_max0 > tps.tickness_max {
+            part.height_max0 = tps.tickness_max;
         }
-        if part.height_max1 < tps.tickness {
-            part.height_max1 = tps.tickness;
+        if part.height_max1 < tps.tickness_max {
+            part.height_max1 = tps.tickness_max;
         }   
     }
 
-    for (i, temp) in part.tps_list_min[1].0.temp_list2.iter().enumerate() {
+    for (i, temp) in temp_ref_list.iter().enumerate() {
         let mut cp = 0.0;
         let mut r_th = 0.0;
         let mut e = 0.0;
 
         for (tps, portion, data_adjusted) in part.tps_list_min.iter() {
-            cp += data_adjusted[i].thermal_data.cp * tps.areal_density / part.areal_density_min * portion * (tps.temp_max - TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            cp += data_adjusted[i].thermal_data.cp * tps.areal_density_min / part.areal_density_min * portion * (tps.temp - TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
             r_th += data_adjusted[i].thermal_data.R_th * portion;// * (part.temp - TEMPERATURE_EQUALIZED) / (tps.temp_max - TEMPERATURE_EQUALIZED);
             e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
             //e +=  data_adjusted[i].thermal_data.e * portion * ( f32::powf(structure.temp_max,4.0) - f32::powf(0.0, 4.0) ) / ( f32::powf(part.temp,4.0) - f32::powf(0.0, 4.0) );
         }
         part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
     } 
-    for (i, temp) in part.tps_list_max[1].0.temp_list2.iter().enumerate() {
+    for (i, temp) in temp_ref_list.iter().enumerate() {
         let mut cp = 0.0;
         let mut r_th = 0.0;
         let mut e = 0.0;
 
         for (tps, portion, data_adjusted) in part.tps_list_max.iter() {
-            cp += data_adjusted[i].thermal_data.cp * tps.areal_density / part.areal_density_max * portion * (tps.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+            cp += data_adjusted[i].thermal_data.cp * tps.areal_density_max / part.areal_density_max * portion * (tps.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
             r_th += data_adjusted[i].thermal_data.R_th * portion;// * (part.temp - TEMPERATURE_EQUALIZED) / (tps.temp_max - TEMPERATURE_EQUALIZED);
             e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
         }
@@ -353,16 +373,24 @@ fn calculate_part(part: &mut Part) {
 
 /// calculate the structure values based on data from layer
 fn calc_tps_height_density(tps: &mut TPS) {
-    tps.areal_density = 0.0;
-    tps.tickness = 0.0;
+    tps.areal_density_min = 0.0;
+    tps.tickness_min = 0.0;
+    tps.areal_density_max = 0.0;
+    tps.tickness_max = 0.0;
     
-    for layer in tps.segments.iter() {
-        tps.areal_density += layer.areal_density; 
-        tps.tickness += layer.tickness;
+    for layer in tps.segments_min.iter() {
+        tps.areal_density_min += layer.areal_density; 
+        tps.tickness_min += layer.tickness;
+    }
+
+    for layer in tps.segments_max.iter() {
+        tps.areal_density_max += layer.areal_density; 
+        tps.tickness_max += layer.tickness;
     }
 }
 
-fn calc_tps_data(tps: &TPS, temp_list: &Vec<f32>) -> Vec<DataPair> {
+fn calc_tps_data(segments: &Vec<Segment>, temp_list: &Vec<f32>) -> Vec<DataPair> {
+
     let mut data = Vec::<DataPair>::new();
 
     for (i, temp) in temp_list.iter().enumerate() {    
@@ -370,7 +398,7 @@ fn calc_tps_data(tps: &TPS, temp_list: &Vec<f32>) -> Vec<DataPair> {
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for layer in tps.segments.iter() {
+        for layer in segments.iter() {
             cp += layer.data_tps_temp_mult[i].thermal_data.cp;
             r_th += layer.data_tps_temp_mult[i].thermal_data.R_th;
 
