@@ -29,7 +29,7 @@ fn main() -> std::io::Result<()> {
         for segment in tps.segments.iter_mut() {
             read_material_csv(segment).unwrap();
             fill_gaps_in_csv(&mut segment.data_csv);
-            segment.areal_density = segment.density * segment.tickness * segment.portion;
+            segment.areal_density = (segment.density * segment.tickness + segment.additive_areal_weight) * segment.portion ;
             
             //println!("{}, {}", tps.name, segment.name);
             segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp_max, segment.temp_hot_side, &segment.data_csv, &temp_list);
