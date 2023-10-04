@@ -75,10 +75,10 @@ pub struct Segment {
     pub areal_density: f32,
     pub additive_areal_weight: f32,
     pub data_csv: Vec<DataPair>,
-    pub data_height_adjust: Vec<DataTriplet>,
     pub data_tps_temp_map: Vec<DataTriplet>,
-    pub data_tps_temp_mult: Vec<DataTriplet>,
+    pub data_height_adjust: Vec<DataTriplet>,
     pub data_avg_r: Vec<DataTriplet>,
+    pub data_tps_temp_mult: Vec<DataTriplet>,
 }
 impl Default for Segment{
     fn default() -> Self {

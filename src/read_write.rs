@@ -339,7 +339,7 @@ pub fn output_layer(layer: &Segment, path: &String) -> Result<(), Box<dyn Error>
     wtr.flush()?;
 
 
-    let output_file = path.clone() + "/" + &layer.name + "_tps_data.csv";
+    let output_file = path.clone() + "/" + &layer.name + "_data_tps_temp_map.csv";
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
         Err(err) =>  {println!("Error while reading Results.csv {}", err);
@@ -398,7 +398,7 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
     
     for (i, data) in tps.data_min.iter().enumerate() {
-        wtr.serialize((data.0, data.1.cp, data.1.R_th, data.1.e))?;
+        wtr.serialize((data.0, data.1.cp, 1.0 / data.1.R_th, data.1.e))?;
         if data.0 >= tps.temp - 25.0 && data.0 <= tps.temp + 25.0 {
             index = i;
         }
@@ -420,7 +420,7 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
     
     for (i, data) in tps.data_max.iter().enumerate() {
-        wtr.serialize((data.0, data.1.cp, data.1.R_th, data.1.e))?;
+        wtr.serialize((data.0, data.1.cp, 1.0 / data.1.R_th, data.1.e))?;
         if data.0 >= tps.temp - 25.0 && data.0 <= tps.temp + 25.0 {
             index = i;
         }
@@ -428,14 +428,15 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
     wtr.flush()?;
 
     // write layer into strucure Folder
-    let directory = (&path).to_string() + &tps.name;
+    let directory = (&path).to_string() + "Debug_Info/" + &tps.name;
     fs::create_dir_all(&directory)?;
     for layer in tps.segments_min.clone() {
-        output_layer(&layer,&directory,)?;
+        output_layer(&layer,&directory)?;
     }
 
-
-    let output_file = path.clone() + &tps.name + ".cfg";
+    let directory = path.clone() + "TPS/";
+    let output_file = directory.to_owned() + &tps.name + ".cfg";
+    fs::create_dir_all(&directory)?;
     let mut file = File::create(output_file)?;
 
     writeln!(file, "ROThermal_PRESET\n{{")?;
@@ -450,12 +451,12 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
     writeln!(file, "    skinHeightMin = {:0.4}" , tps.tickness_min)?;
     writeln!(file, "    skinMassPerArea = {}" , tps.areal_density_min)?;
     writeln!(file, "    skinSpecificHeatCapacity = {}" , tps.data_min[index].1.cp)?;
-    writeln!(file, "    thermalInsulance = {}\n" , f32::powf(tps.data_min[index].1.R_th, -1.0))?;
+    writeln!(file, "    thermalInsulance = {}\n" , tps.data_min[index].1.R_th)?;
 
     writeln!(file, "    skinHeightMax = {:0.4}" , tps.tickness_max)?;
     writeln!(file, "    skinMassPerAreaMax = {}" , tps.areal_density_max)?;
     writeln!(file, "    skinSpecificHeatCapacityMax = {}" , tps.data_max[index].1.cp)?;
-    writeln!(file, "    thermalInsulanceMax = {}\n" , f32::powf(tps.data_max[index].1.R_th, -1.0))?;
+    writeln!(file, "    thermalInsulanceMax = {}\n" , tps.data_max[index].1.R_th)?;
 
     writeln!(file, "    disableModAblator = {}" , tps.has_ablator)?;
     writeln!(file, "    costPerArea = {}" , tps.cost_per_area)?;
@@ -499,10 +500,10 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     wtr.flush()?;
 
 
-    let output_file = path.clone() + "csv/" + &part.name + "_max.csv";
+    let output_file = path.to_owned()+ "csv/" + &part.name + "_max.csv";
     let mut wtr = match csv::Writer::from_path(&output_file){
         Ok(result) => {result},
-        Err(err) =>  {println!("Error while writing {}: {}", path.clone() + "csv/" + &part.name + "_max.csv", err);
+        Err(err) =>  {println!("Error while writing {}: {}", path.to_owned() + "csv/" + &part.name + "_max.csv", err);
                             process::exit(1);}
     };
 
@@ -516,9 +517,9 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     }
     wtr.flush()?;
 
-
-    let output_file = path.clone() + &part.name + ".cfg";
-        
+    let directory = path.to_owned()+ "Part/";
+    let output_file = directory.to_owned() + &part.name + ".cfg";
+    fs::create_dir_all(&directory)?;
     let mut file = File::create(output_file)?;
     
     writeln!(file, "ROThermal_PRESET\n{{")?;

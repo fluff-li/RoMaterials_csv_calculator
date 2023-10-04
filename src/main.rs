@@ -34,11 +34,6 @@ fn main() -> std::io::Result<()> {
             segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp, segment.temp_hot_side, &segment.data_csv, &temp_list);
             segment.data_height_adjust = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
             segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side);
-
-            let data_tmp0 = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
-            let data_tmp = avg_cp_k(segment.tickness, &data_tmp0, segment.temp_hot_side, segment.temp_cold_side);
-            output_data_Triplet(&(segment.name.to_owned() + "_data_tmp"), &data_tmp, OUTPUT_DIRECTORY.to_string() + "structures/" + &tps.name).unwrap();
-
         }
         for segment in tps.segments_max.iter_mut() {
             read_material_csv(segment).unwrap();
@@ -49,11 +44,6 @@ fn main() -> std::io::Result<()> {
             segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp, segment.temp_hot_side, &segment.data_csv, &temp_list);
             segment.data_height_adjust = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
             segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side);
-
-            let data_tmp0 = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
-            let data_tmp = avg_cp_k(segment.tickness, &data_tmp0, segment.temp_hot_side, segment.temp_cold_side);
-            output_data_Triplet(&(segment.name.to_owned() + "_data_tmp"), &data_tmp, OUTPUT_DIRECTORY.to_string() + "structures/" + &tps.name).unwrap();
-
         }
         calc_tps_height_density(&mut tps);
         for segment in tps.segments_min.iter_mut() {
@@ -66,7 +56,7 @@ fn main() -> std::io::Result<()> {
         tps.data_max = calc_tps_data(&tps.segments_max, &temp_list);
         
 
-        output_tps(&tps, OUTPUT_DIRECTORY.to_string() + "structures/").unwrap();
+        output_tps(&tps, OUTPUT_DIRECTORY.to_string()).unwrap();
         tps_list.push(tps);
     }
     
@@ -106,7 +96,7 @@ fn main() -> std::io::Result<()> {
     
         calculate_part(&mut part, &temp_list);
 
-        output_part(part, OUTPUT_DIRECTORY.to_string() + "parts/");
+        output_part(part, OUTPUT_DIRECTORY.to_string()).unwrap();
     }
 
     Ok(())
@@ -221,13 +211,13 @@ fn fill_gaps_in_csv(thermal_list: &mut Vec<DataPair>,) {
     for i in n_r_th..thermal_list.len() {
         // not necessary, just double check
         if thermal_list[i].1.R_th == 0.0 {
-            thermal_list[i].1.R_th = thermal_list[n_cp].1.R_th;
+            thermal_list[i].1.R_th = thermal_list[n_r_th].1.R_th;
         }
     }
-    for i in n_cp..thermal_list.len() {
+    for i in n_e..thermal_list.len() {
         // not necessary, just double check
         if thermal_list[i].1.e == 0.0 {
-            thermal_list[i].1.e = thermal_list[n_cp].1.e;
+            thermal_list[i].1.e = thermal_list[n_e].1.e;
         }
     }
 }
