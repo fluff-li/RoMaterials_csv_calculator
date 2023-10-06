@@ -20,7 +20,7 @@ const OUTPUT_DIRECTORY: &str = "out/";
 fn main() -> std::io::Result<()> {
     let mut tps_list = Vec::<TPS>::new();
     let temp_list = read_temp_list_csv2(&PathBuf::from(TEMP_LIST));
-    let tps_paths = get_files("bib/structures".to_string(), OsString::from("csv"));
+    let tps_paths = get_files("bib/tps".to_string(), OsString::from("csv"));
 
     for path in tps_paths.iter() {
         let mut tps = read_tps_csv(path);
@@ -339,10 +339,10 @@ fn calculate_part(part: &mut Part, temp_ref_list: &Vec<f32>) {
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for (tps, portion, data_adjusted) in part.tps_list_min.iter() {
-            cp += data_adjusted[i].thermal_data.cp * tps.areal_density_min / part.areal_density_min * portion * (tps.temp - TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (part.temp - TEMPERATURE_EQUALIZED) / (tps.temp_max - TEMPERATURE_EQUALIZED);
-            e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+        for (tps, portion, data) in part.tps_list_min.iter() {
+            cp += data[i].thermal_data.cp * tps.areal_density_min / part.areal_density_min * portion * (data[i].temp_sub_part - TEMPERATURE_EQUALIZED) / (data[i].temp_part - TEMPERATURE_EQUALIZED);
+            r_th += portion * data[i].thermal_data.R_th;
+            e += data[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
             //e +=  data_adjusted[i].thermal_data.e * portion * ( f32::powf(structure.temp_max,4.0) - f32::powf(0.0, 4.0) ) / ( f32::powf(part.temp,4.0) - f32::powf(0.0, 4.0) );
         }
         part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
@@ -352,10 +352,10 @@ fn calculate_part(part: &mut Part, temp_ref_list: &Vec<f32>) {
         let mut r_th = 0.0;
         let mut e = 0.0;
 
-        for (tps, portion, data_adjusted) in part.tps_list_max.iter() {
-            cp += data_adjusted[i].thermal_data.cp * tps.areal_density_max / part.areal_density_max * portion * (tps.temp-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            r_th += data_adjusted[i].thermal_data.R_th * portion;// * (part.temp - TEMPERATURE_EQUALIZED) / (tps.temp_max - TEMPERATURE_EQUALIZED);
-            e += data_adjusted[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
+        for (tps, portion, data) in part.tps_list_max.iter() {
+            cp += data[i].thermal_data.cp * tps.areal_density_max / part.areal_density_max * portion * (data[i].temp_sub_part - TEMPERATURE_EQUALIZED) / (data[i].temp_part - TEMPERATURE_EQUALIZED);
+            r_th += portion * data[i].thermal_data.R_th;
+            e += data[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
         }
         part.data_max.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
     }
