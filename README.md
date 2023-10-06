@@ -1,5 +1,5 @@
 # RoMaterials_csv_calculator
-This program is designed to generate realistic thermal propertiy configurations for Kerbal Space Program. It serves as a helpful tool for the project located at [fluff-li/ROLibrary](https://github.com/fluff-li/ROLibrary.).
+This is a tool designed to create realistic thermal propertiy configurations for Kerbal Space Program. It serves as a helpful aid for the project located at [fluff-li/ROLibrary](https://github.com/fluff-li/ROLibrary.).
   
   
 ## Input
@@ -12,4 +12,4 @@ The bib/ folder contains the following inputs:
 ## Output:  
 The out/ folder contains the following outputs:
 -  **Part/TPS**: Preset files in .cfg format.
--  **csv**: A table of temperature-dependent thermal properties. 
+-  **csv**: A table of temperature-dependent thermal properties for each preset. 
