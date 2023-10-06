@@ -3,8 +3,12 @@ Temperature,1920,,,,
 Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
 Top Layer,bib/materials/RCC.csv,1,0.0127,1920,1850
 Layer,bib/materials/Inconel_601.csv,1,0.0001,1500,1500
-Layer,bib/materials/Cerachrome-12.csv,1,0.12,1500,400
+Layer,bib/materials/Cerachrome-12.csv,0.7,0.0658,1500,400
+Layer,bib/materials/Inconel_718.csv,18,0.0001,1000,400
+Layer,bib/materials/LI-900.csv,0.2,0.0558,1500,400
 Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
 Top Layer,bib/materials/RCC.csv,1,0.0127,1920,1850
 Layer,bib/materials/Inconel_601.csv,1,0.0001,1500,1500
-Layer,bib/materials/Cerachrome-12.csv,1,0.19,1500,400
+Layer,bib/materials/Cerachrome-12.csv,0.7,0.0658,1500,400
+Layer,bib/materials/Inconel_718.csv,18,0.0001,1000,400
+Layer,bib/materials/LI-900.csv,0.2,0.0558,1500,400

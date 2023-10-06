@@ -1,0 +1,6 @@
+Name,Steel_Cr21Ni20,steel stainless (cr 16-26 ni 8-36),
+Temperature Limit,700,,
+Density,7950,,
+Temperature,Specific Heat,Thermal Conductivity,Emissivity
+300,502,14.6,
+400,502,14.6,

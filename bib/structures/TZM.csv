@@ -1,8 +1,8 @@
 Name,TZM,,,,
-Temperature,1800,,,,
+Temperature,1533,,,,
 Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
-Top Layer,bib/materials/TZM.csv,1,0.0018,1800,1800
-Layer,bib/materials/Q-Fiber_96.csv,1,0.003,1800,1000
+Top Layer,bib/materials/TZM.csv,1,0.0018,1533,1533
+Layer,bib/materials/Q-Fiber_96.csv,1,0.0015,1533,1100
 Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
-Top Layer,bib/materials/TZM.csv,1,0.0018,1800,1800
-Layer,bib/materials/Q-Fiber_96.csv,1,0.003,1800,1000
+Top Layer,bib/materials/TZM.csv,1,0.0018,1533,1533
+Layer,bib/materials/Q-Fiber_96.csv,1,0.0015,1533,1100
