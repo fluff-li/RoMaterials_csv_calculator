@@ -441,7 +441,7 @@ pub fn avg_cp_k(lenght: f32, data_ref: &Vec<DataTriplet>, temp_max: f32, temp_mi
         let mut cp = 0.0;
         let mut d_sum = 0.0;
         while i < steps.len() {
-            if steps[i].0 >= row.temp_part * temp_frac && steps[i].0 <= row.temp_part {
+            if steps[i].0 >= row.temp_sub_part * temp_frac && steps[i].0 <= row.temp_sub_part {
                 r_th += steps[i].2 / steps[i].1;
                 cp += steps[i].4 * steps[i].2;
                 d_sum += steps[i].2
