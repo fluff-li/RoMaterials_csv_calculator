@@ -1,14 +1,10 @@
-Name,Shuttle Early Fuselage,
-Description,OV-102 Columbia,
-Temperature,1590,
-AbsorbationConstant,0.32,
-CostPerArea,0,
-HasAblator,false,
-Min,Name,Portion
-Structure,HRSI_LI-900,0.40
-Structure,LRSI,0.200
-Structure,FRSI,0.400
-Max,Name,Portion
-Structure,HRSI_LI-900,0.40
-Structure,LRSI,0.200
-Structure,FRSI,0.400
+Name,Shuttle Early Fuselage,,,
+Description,OV-102 Columbia,,,
+Temperature,1590,,,
+AbsorbationConstant,0.32,,,
+CostPerArea,0,,,
+HasAblator,false,,,
+,Name,Portion,,
+Structure,HRSI_LI-900,0.40,0.0532,max
+Structure,LRSI,0.200,min,max
+Structure,FRSI,0.400,max,max

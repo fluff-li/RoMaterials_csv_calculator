@@ -1,18 +1,12 @@
-Name,Shuttle Early Cockpit,
-Description,OV-102 Columbia,
-Temperature,1920,
-AbsorbationConstant,0.32,
-CostPerArea,0,
-HasAblator,false,
-Min,Name,Portion
-Structure,RCC_Nose,0.1
-Structure,HRSI_LI-900,0.5688
-Structure,HRSI_LI-2200,0.0312
-Structure,LRSI,0.25
-Structure,FRSI,0.05
-Max,Name,Portion
-Structure,RCC_Nose,0.1
-Structure,HRSI_LI-900,0.5688
-Structure,HRSI_LI-2200,0.0312
-Structure,LRSI,0.25
-Structure,FRSI,0.05
+Name,Shuttle Early Cockpit,,,
+Description,OV-102 Columbia,,,
+Temperature,1920,,,
+AbsorbationConstant,0.32,,,
+CostPerArea,0,,,
+HasAblator,false,,,
+,Name,Portion,,
+Structure,RCC_Nose,0.1,min,max
+Structure,HRSI_LI-900,0.5688,0.0532,max
+Structure,HRSI_LI-2200,0.0312,min,max
+Structure,LRSI,0.25,min,max
+Structure,FRSI,0.05,max,max

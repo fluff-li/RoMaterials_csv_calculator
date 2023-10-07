@@ -5,6 +5,7 @@ use read_write::*;
 use data_holder::*;
 
 use std::{
+    error::Error,
     process,
     path::PathBuf, 
     ffi::OsString,
@@ -63,33 +64,27 @@ fn main() -> std::io::Result<()> {
 
     let part_paths = get_files("bib/part".to_string(), OsString::from("csv"));
     for path in part_paths.iter() {
-        let (mut part, mut part_list_min, mut part_list_max) = read_part_csv(path);
+        let (mut part, mut part_list_min) = read_part_csv(path);
 
-        for structure in &tps_list {
-            for (i, (name, portion)) in part_list_min.iter_mut().enumerate() {
-                if structure.name == *name {
-                    part.tps_list_min.push((structure.clone(), *portion
-                                            , map_component_data_to_assembly(part.temp, structure.temp, &structure.data_min, &temp_list)));
+        for tps in &tps_list {
+            for (i, (name, portion, height_min, height_max)) in part_list_min.iter_mut().enumerate() {
+                if tps.name == *name {
+                    let tps_new = tps_change_height(&tps,*height_min, *height_max );
+                    let data_min = map_component_data_to_assembly(part.temp, tps.temp, &tps_new.data_min, &temp_list);
+                    let data_max = map_component_data_to_assembly(part.temp, tps.temp, &tps_new.data_max, &temp_list);
+
+                    part.tps_list.push((tps_new, *portion, data_min, data_max));
                     part_list_min.remove(i);
-                    output_data_Triplet(&structure.name,&part.tps_list_min.last().unwrap().2, "out/test/".to_owned() + &part.name + "/expanded_list2").unwrap();
                     break;
                 }
             }
-            for (i, (name, portion)) in part_list_max.iter_mut().enumerate() {
-                if structure.name == *name {
-                    
-                    part.tps_list_max.push((structure.clone(), *portion
-                                            , map_component_data_to_assembly(part.temp, structure.temp, &structure.data_max, &temp_list)));
-                    part_list_max.remove(i);
-                    break;
-                }
-            }
-            if part_list_min.is_empty() & part_list_max.is_empty() {
+
+            if part_list_min.is_empty() {
                 break;
             }
         }
-        if !part_list_min.is_empty() | !part_list_max.is_empty()  {
-            println!("Error Part {}: Structures not found. {:?} {:?}", part.name, part_list_min, part_list_max );
+        if !part_list_min.is_empty() {
+            println!("Error Part {}: Structures not found. {:?}", part.name, part_list_min);
             process::exit(1);
         }
 
@@ -308,57 +303,37 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
 fn calculate_part(part: &mut Part, temp_ref_list: &Vec<f32>) {
     part.areal_density_min = 0.0;
     part.areal_density_max = 0.0;
-    part.height_min0 = f32::INFINITY;
-    part.height_min1 = 0.0;
-    part.height_max0 = f32::INFINITY;
-    part.height_max1 = 0.0;
+    part.height_min = 0.0;
+    part.height_max = 0.0;
 
-    for (tps, portion, _data) in part.tps_list_min.iter() {
+    for (tps, portion, _data_min, _data_max) in part.tps_list.iter() {
         part.areal_density_min += tps.areal_density_min * portion;
-
-        if part.height_min0 > tps.tickness_min {
-            part.height_min0 = tps.tickness_min;
-        }
-        if part.height_min1 < tps.tickness_min {
-            part.height_min1 = tps.tickness_min;
-        }   
-    }
-    for (tps, portion, _data) in part.tps_list_max.iter() {
         part.areal_density_max += tps.areal_density_max * portion;
 
-        if part.height_max0 > tps.tickness_max {
-            part.height_max0 = tps.tickness_max;
-        }
-        if part.height_max1 < tps.tickness_max {
-            part.height_max1 = tps.tickness_max;
-        }   
+        part.height_min += tps.tickness_min * portion;
+        part.height_max += tps.tickness_max * portion;
     }
 
     for (i, temp) in temp_ref_list.iter().enumerate() {
-        let mut cp = 0.0;
-        let mut r_th = 0.0;
-        let mut e = 0.0;
+        let mut cp_min = 0.0;
+        let mut r_th_min = 0.0;
+        let mut e_min = 0.0;
+        let mut cp_max = 0.0;
+        let mut r_th_max = 0.0;
+        let mut e_max = 0.0;
 
-        for (tps, portion, data) in part.tps_list_min.iter() {
-            cp += data[i].thermal_data.cp * tps.areal_density_min / part.areal_density_min * portion * (data[i].temp_sub_part - TEMPERATURE_EQUALIZED) / (data[i].temp_part - TEMPERATURE_EQUALIZED);
-            r_th += portion * data[i].thermal_data.R_th;
-            e += data[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-            //e +=  data_adjusted[i].thermal_data.e * portion * ( f32::powf(structure.temp_max,4.0) - f32::powf(0.0, 4.0) ) / ( f32::powf(part.temp,4.0) - f32::powf(0.0, 4.0) );
+        for (tps, portion, data_min, data_max) in part.tps_list.iter() {
+            cp_min += data_min[i].thermal_data.cp * tps.areal_density_min / part.areal_density_min * portion * (data_min[i].temp_sub_part - TEMPERATURE_EQUALIZED) / (data_min[i].temp_part - TEMPERATURE_EQUALIZED);
+            r_th_min += portion * data_min[i].thermal_data.R_th;
+            e_min += data_min[i].thermal_data.e * portion;
+
+            cp_max += data_max[i].thermal_data.cp * tps.areal_density_max / part.areal_density_max * portion * (data_max[i].temp_sub_part - TEMPERATURE_EQUALIZED) / (data_max[i].temp_part - TEMPERATURE_EQUALIZED);
+            r_th_max += portion * data_max[i].thermal_data.R_th;
+            e_max += data_max[i].thermal_data.e * portion;
         }
-        part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
+        part.data_min.push(DataPair((*temp - 25.0) as f32, Data{cp: cp_min, R_th: 1.0 / r_th_min, e: e_min}));
+        part.data_max.push(DataPair((*temp - 25.0) as f32, Data{cp: cp_max, R_th: 1.0 / r_th_max, e: e_max}));
     } 
-    for (i, temp) in temp_ref_list.iter().enumerate() {
-        let mut cp = 0.0;
-        let mut r_th = 0.0;
-        let mut e = 0.0;
-
-        for (tps, portion, data) in part.tps_list_max.iter() {
-            cp += data[i].thermal_data.cp * tps.areal_density_max / part.areal_density_max * portion * (data[i].temp_sub_part - TEMPERATURE_EQUALIZED) / (data[i].temp_part - TEMPERATURE_EQUALIZED);
-            r_th += portion * data[i].thermal_data.R_th;
-            e += data[i].thermal_data.e * portion; // * (structure.temp_max-TEMPERATURE_EQUALIZED) / (part.temp-TEMPERATURE_EQUALIZED);
-        }
-        part.data_max.push(DataPair((*temp - 25.0) as f32, Data{cp: cp, R_th: 1.0 / r_th, e: e}));
-    }
 }
 
 /// calculate the structure values based on data from layer
@@ -488,4 +463,52 @@ pub fn avg_cp_k(lenght: f32, data: &Vec<DataTriplet>, temp_max: f32, temp_min: f
         row.thermal_data.cp = cp / d_sum;
     }
     data_out
+}
+
+fn tps_change_height(tps_ref: &TPS, new_height_min: f32, new_height_max: f32) -> TPS {
+    let mut tps = tps_ref.clone();
+
+    if new_height_min == f32::INFINITY {
+        tps.tickness_min = tps.tickness_max;
+        tps.areal_density_min = tps.areal_density_max;
+
+        for (i, data) in tps.data_min.iter_mut().enumerate() {
+            data.1.cp = tps.data_max[i].1.cp;
+            data.1.R_th = tps.data_max[i].1.R_th;
+        }
+    } else if new_height_min != f32::NEG_INFINITY {
+        let height_factor = (new_height_min - tps_ref.tickness_min) / (tps_ref.tickness_max - tps_ref.tickness_min);
+
+        if height_factor > 0.001 && height_factor < 0.999 {
+            tps.tickness_min = (tps.tickness_max - tps.tickness_min) * height_factor + tps.tickness_min;
+            tps.areal_density_min = (tps.areal_density_max - tps.areal_density_min) * height_factor + tps.areal_density_min;
+
+            for (i, data) in tps.data_min.iter_mut().enumerate() {
+                data.1.cp = (tps.data_max[i].1.cp - data.1.cp) * height_factor + data.1.cp;
+                data.1.R_th = (tps.data_max[i].1.R_th - data.1.R_th) * height_factor + data.1.R_th;
+            }
+        }
+    }
+    if new_height_max == f32::NEG_INFINITY {
+        tps.tickness_max = tps.tickness_min;
+        tps.areal_density_max = tps.areal_density_min;
+
+        for (i, data) in tps.data_max.iter_mut().enumerate() {
+            data.1.cp = tps.data_min[i].1.cp;
+            data.1.R_th = tps.data_min[i].1.R_th;
+        }
+    } else if new_height_max != f32::INFINITY {
+        let height_factor = (new_height_max - tps_ref.tickness_min) / (tps_ref.tickness_max - tps_ref.tickness_min);
+
+        if height_factor < 0.999 && height_factor > 0.001 {
+            tps.tickness_max = (tps.tickness_max - tps.tickness_min) * height_factor + tps.tickness_min;
+            tps.areal_density_max = (tps.areal_density_max - tps.areal_density_min) * height_factor + tps.areal_density_min;
+
+            for (i, data) in tps.data_max.iter_mut().enumerate() {
+                data.1.cp = (data.1.cp - tps.data_min[i].1.cp) * height_factor + tps.data_min[i].1.cp;
+                data.1.R_th = (data.1.R_th - tps.data_min[i].1.R_th) * height_factor + tps.data_min[i].1.R_th;
+            }
+        }
+    }
+    tps
 }

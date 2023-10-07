@@ -2,7 +2,7 @@ Name,HRSI_LI-900,,,,
 Temperature,1590,,,,
 Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
 Top Layer,bib/materials/RCG.csv,1,0.000254,1590,1590
-Layer,bib/materials/LI-900.csv,1,0.0508,1590,400
+Layer,bib/materials/LI-900.csv,1,0.0254,1590,400
 Layer,bib/materials/SIP.csv,1,0.002,400,400
 Layer,bib/materials/RTV.csv,1.8,0.00019,400,400
 Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side

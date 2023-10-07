@@ -49,7 +49,7 @@ pub fn read_temp_list_csv2(file_path: &PathBuf) -> Vec<f32> {
     temp_list
 }
 
-pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32)>, Vec<(String, f32)> ) {
+pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32, f32, f32)> ) {
     let mut part = Part {
         name: "".to_string(),
         description: "".to_string(),
@@ -57,14 +57,11 @@ pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32)>, Vec<(Str
         absorbation_const: 0.0,
         cost_per_area: 0.0,
         has_ablator: false,
-        height_min1: 0.0,
-        height_min0: 0.0,
-        height_max1: 0.0,
-        height_max0: 0.0,
+        height_min: 0.0,
+        height_max: 0.0,
         areal_density_min: 0.0,
         areal_density_max: 0.0,
-        tps_list_min: Vec::<(TPS, f32, Vec<DataTriplet>)>::new(),
-        tps_list_max: Vec::<(TPS, f32, Vec<DataTriplet>)>::new(),
+        tps_list: Vec::<(TPS, f32, Vec<DataTriplet>, Vec<DataTriplet>)>::new(),
         data_min: Vec::<DataPair>::new(),
         data_max: Vec::<DataPair>::new(),
     };
@@ -76,8 +73,7 @@ pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32)>, Vec<(Str
         Err(err) =>  {println!("Error while reading file {}\n,{}", &file_path.display(), err);
                             process::exit(1);}
     };
-    let mut parts_min = Vec::<(String, f32)>::new();
-    let mut parts_max = Vec::<(String, f32)>::new();
+    let mut parts = Vec::<(String, f32, f32, f32)>::new();
 
     for result in rdr.records() {
         let record = match result {
@@ -112,31 +108,37 @@ pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32)>, Vec<(Str
                                                                 process::exit(1);},
                                 };
                             }
-            "Min" =>        read_max = false,
-            "Max" =>        read_max = true,
-            "Structure" =>  {   if read_max {
-                                    let name = record[1].to_string(); 
-                                    let portion =  match record[2].parse::<f32>() {
-                                            Ok(result) =>  result,
-                                            Err(err) => {println!("{} Error while parsing Portion to float", err);
-                                                                        process::exit(1);},
-                                    };
-                                    parts_max.push((name, portion))
-                                } else {
-                                    let name = record[1].to_string(); 
-                                    let portion =  match record[2].parse::<f32>() {
-                                            Ok(result) =>  result,
-                                            Err(err) => {println!("{} Error while parsing Portion to float", err);
-                                                                        process::exit(1);},
-                                    };
-                                    parts_min.push((name, portion))
-                                }
+            "Structure" =>  {
+                                let name = record[1].to_string(); 
+                                let portion =  match record[2].parse::<f32>() {
+                                        Ok(result) =>  result,
+                                        Err(err) => {println!("{} Error while parsing Portion to float", err);
+                                                                    process::exit(1);},
+                                };
+                                let height_min =  match &record[3] {
+                                    "max" => f32::INFINITY,
+                                    "min" => f32::NEG_INFINITY,
+                                    &_ =>   match record[3].parse::<f32>() {
+                                                Ok(result) =>  result,
+                                                Err(err) => {println!("{} Error while parsing Height Min to float", err);
+                                                                            process::exit(1);},
+                                            },
+                                };
+                                let height_max =  match &record[4] {
+                                    "max" => f32::INFINITY,
+                                    "min" => f32::NEG_INFINITY,
+                                    &_ =>   match record[4].parse::<f32>() {
+                                                Ok(result) =>  result,
+                                                Err(err) => {println!("{} Error while parsing Height Max to float", err);
+                                                                            process::exit(1);},
+                                            },
+                                };
+                                parts.push((name, portion, height_min, height_max))
                             }
             &_ => {}
         }
     }
-
-    (part, parts_min, parts_max)
+    (part, parts)
 }
 
 
@@ -531,12 +533,12 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     writeln!(file, "    emissiveConstant = {}" , part.data_min[index].1.e)?;
     writeln!(file, "    absorptiveConstant = {}\n" , part.absorbation_const)?;
 
-    writeln!(file, "    skinHeightMin = {:0.4}" , part.height_min1)?;
+    writeln!(file, "    skinHeightMin = {:0.4}" , part.height_min)?;
     writeln!(file, "    skinMassPerArea = {}" , part.areal_density_min)?;
     writeln!(file, "    skinSpecificHeatCapacity = {}" , part.data_min[index].1.cp)?;
     writeln!(file, "    thermalInsulance = {}\n" , f32::powf(part.data_min[index].1.R_th, -1.0))?;
 
-    writeln!(file, "    skinHeightMax = {:0.4}" , part.height_max1)?;
+    writeln!(file, "    skinHeightMax = {:0.4}" , part.height_max)?;
     writeln!(file, "    skinMassPerAreaMax = {}" , part.areal_density_max)?;
     writeln!(file, "    skinSpecificHeatCapacityMax = {}" , part.data_max[index].1.cp)?;
     writeln!(file, "    thermalInsulanceMax = {}\n" , f32::powf(part.data_max[index].1.R_th, -1.0))?;
@@ -545,13 +547,9 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     writeln!(file, "    costPerArea = {}" , part.cost_per_area)?;
     writeln!(file, "}}")?;
 
-    writeln!(file, "// Min: \n// Segment, Portion")?;
-    for structure in &part.tps_list_min {
-        writeln!(file, "// {}, {}",&structure.0.name, structure.1)?;    
-    }
-    writeln!(file, "\n// Max: \n// Segment, Portion")?;
-    for structure in &part.tps_list_max {
-        writeln!(file, "// {}, {}",&structure.0.name, structure.1)?;    
+    writeln!(file, "// Segment, Portion, Min Height, Max Height")?;
+    for structure in &part.tps_list {
+        writeln!(file, "// {}, {}, {}, {}",&structure.0.name, structure.1, &structure.0.tickness_min, &structure.0.tickness_max)?;    
     }
 
     Ok(())
