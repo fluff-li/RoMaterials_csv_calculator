@@ -21,6 +21,12 @@ const OUTPUT_DIRECTORY: &str = "out/";
 fn main() -> std::io::Result<()> {
     let mut tps_list = Vec::<TPS>::new();
     let temp_list = read_temp_list_csv2(&PathBuf::from(TEMP_LIST));
+
+    let mut temp_list_5 = Vec::<f32>::new();
+    for i in (0..=*temp_list.last().unwrap() as i32).step_by(5) {
+        temp_list_5.push(i as f32);
+    }
+
     let tps_paths = get_files("bib/tps".to_string(), OsString::from("csv"));
 
     for path in tps_paths.iter() {
@@ -34,7 +40,7 @@ fn main() -> std::io::Result<()> {
             //println!("{}, {}", tps.name, segment.name);
             segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp, segment.temp_hot_side, &segment.data_csv, &temp_list);
             segment.data_height_adjust = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
-            segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side);
+            segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side, &temp_list_5);
         }
         for segment in tps.segments_max.iter_mut() {
             read_material_csv(segment).unwrap();
@@ -44,7 +50,7 @@ fn main() -> std::io::Result<()> {
             //println!("{}, {}", tps.name, segment.name);
             segment.data_tps_temp_map = map_component_data_to_assembly(tps.temp, segment.temp_hot_side, &segment.data_csv, &temp_list);
             segment.data_height_adjust = adjust_to_height(segment.tickness * segment.portion, &segment.data_tps_temp_map);
-            segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side);
+            segment.data_avg_r = avg_cp_k(segment.tickness, &segment.data_height_adjust, segment.temp_hot_side, segment.temp_cold_side, &temp_list_5);
         }
         calc_tps_height_density(&mut tps);
         for segment in tps.segments_min.iter_mut() {
@@ -274,7 +280,7 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
                 index += 1;
             }
         }
-        if index == thermal_list.len() {
+        if index == thermal_list.len() || index == ref_temp_list.len(){
             break;
         }
         if n + 2 == thermal_list.len() {
@@ -409,56 +415,40 @@ fn map_component_data_to_assembly(assemb_temp_max: f32, comp_temp_max: f32, comp
     fit_list(&data_new, &temp_list)
 }
 
-/// Returns a new list with an average conductivity accross segment for given cold & Hot Side Temperature 
-pub fn avg_cp_k(lenght: f32, data: &Vec<DataTriplet>, temp_max: f32, temp_min: f32 ) -> Vec<DataTriplet>{
-    let mut data_out= data.clone();
+/// Returns a new list with an averaged conductivity & insulation accross tickness, for given cold & Hot Side Temperature 
+pub fn avg_cp_k(lenght: f32, data_ref: &Vec<DataTriplet>, temp_max: f32, temp_min: f32, temp_list_5: &Vec<f32> ) -> Vec<DataTriplet>{
+    let mut data_out= data_ref.clone();
     let mut steps = Vec::<(f32,f32,f32,f32,f32)>::new();
 
     let temp_frac = temp_min / temp_max;
 
-    // set a refrence k for q = 1;
-    let mut k_ref = 0.0;
-    let mut t_ref = 0.0;
-    // q = T * d/ k; -> d = q * k / T
-    for (i, _row) in data.iter().enumerate() {
-        if temp_max <= data[i].temp_sub_part + 25.0 && temp_max >= data[i].temp_sub_part -25.0 {
-            t_ref = data[i].temp_sub_part ;
-            if data[i].thermal_data.R_th == 0.0 {
-                return data.clone();
-            }
-            k_ref = lenght / data[i].thermal_data.R_th  * 1000.0;
-            //println!("k_ref {}, t_ref {} ",k_ref ,t_ref);
-            break;
-        }
-    }
-    
+    // smaller steps for smother curve, negating the effect of missing a step due to multiplication with temp_frac
+    let data = fit_list(&data_ref, &temp_list_5);    
 
     // extrapolate d value for the rest
-    let q_ref  = t_ref * 1.0 / k_ref; // 1.0 = d_ref
+    let q_ref = 1.0; // q = q1 = q2 = qi = Ti * di / ki; -> di = q * ki / Ti
     let mut d_sum: f32 = 0.0;
     for row in data.iter() {
-        let k = lenght / row.thermal_data.R_th * 1000.0;
+        let k: f32 = lenght / row.thermal_data.R_th;
         let d = q_ref * k / row.temp_sub_part ;
         d_sum += d;
-        //println!("k_ref {}, t_ref {}",k ,row.temp_sub_part);
         steps.push((row.temp_sub_part ,k , d, d_sum, row.thermal_data.cp));
     }
     
-    //let mut steps2 = Vec::<(f32,f32,f32)>::new();
-    for (n, row) in data_out.iter_mut().enumerate() {
+    for row in data_out.iter_mut() {
         let mut i = 0;
         let mut r_th = 0.0;
         let mut cp = 0.0;
         let mut d_sum = 0.0;
-        while i < steps.len(){
-            if steps[i].0 >= steps[n].0 * temp_frac && steps[i].0 <= steps[n].0 {
-                r_th += steps[i].2 / steps[i].1 * 1000.0;
+        while i < steps.len() {
+            if steps[i].0 >= row.temp_part * temp_frac && steps[i].0 <= row.temp_part {
+                r_th += steps[i].2 / steps[i].1;
                 cp += steps[i].4 * steps[i].2;
                 d_sum += steps[i].2
             }
             i += 1;
         }
-        //steps2.push((steps[n].0, r_th / d_sum * lenght , steps[n].0 * temp_frac));
+
         row.thermal_data.R_th = r_th / d_sum * lenght;
         row.thermal_data.cp = cp / d_sum;
     }
