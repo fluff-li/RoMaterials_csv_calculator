@@ -19,7 +19,7 @@ pub struct Part {
 #[derive(Clone)]
 pub struct TPS {
     pub name: String,
-
+    pub description: String,
     pub temp: f32,
     pub absorbation_const: f32,
     pub data_min: Vec<DataPair>,
@@ -39,6 +39,7 @@ impl Default for TPS{
     fn default() -> Self {
         TPS {
             name: "".to_string(),
+            description: "".to_string(),
             temp: 0.0,
             absorbation_const: 0.0,
             data_min: Vec::<DataPair>::new(),

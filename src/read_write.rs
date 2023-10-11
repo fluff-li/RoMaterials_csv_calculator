@@ -161,6 +161,7 @@ pub fn read_tps_csv(file_path: &PathBuf) -> TPS {
         };
         match &record[0] {
             "Name" => structure.name = record[1].to_string(),
+            "Description" => structure.description = record[1].to_string(),
             "Temperature" => { structure.temp = match record[1].parse::<f32>() {
                                         Ok(result) =>  result,
                                         Err(err) => {println!("{} Error while parsing Temperature to float", err);
@@ -436,7 +437,7 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
 
     writeln!(file, "ROThermal_PRESET\n{{")?;
     writeln!(file, "    name = {}" , tps.name)?;
-    writeln!(file, "    description = {}" , "")?;
+    writeln!(file, "    description = {}" , tps.description)?;
     writeln!(file, "    type = Skin\n")?;
 
     writeln!(file, "    skinMaxTemp = {}" , tps.temp)?;
