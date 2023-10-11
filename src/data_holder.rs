@@ -1,8 +1,4 @@
-use std::{
-    fmt,
-    fmt::Display,
-    ops::*,
-};
+use std:: ops::*;
 
 pub struct Part {
     pub name: String,

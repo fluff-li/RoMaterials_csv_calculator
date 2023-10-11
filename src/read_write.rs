@@ -65,7 +65,6 @@ pub fn read_part_csv(file_path: &PathBuf) -> (Part, Vec<(String, f32, f32, f32)>
         data_min: Vec::<DataPair>::new(),
         data_max: Vec::<DataPair>::new(),
     };
-    let mut read_max = false;
 
     let mut rdr = 
     match csv::ReaderBuilder::new().has_headers(false).from_path(&file_path) {
@@ -226,7 +225,11 @@ fn read_segment(record: &StringRecord) -> Segment {
 }
 
 pub fn read_material_csv(segment: &mut Segment) -> Result<(), Box<dyn Error>> {
-    let mut rdr = csv::ReaderBuilder::new().has_headers(false).from_path(&segment.path)?;
+    let mut rdr = match csv::ReaderBuilder::new().has_headers(false).from_path(&segment.path) {
+                            Ok(result) => {result},
+                            Err(_err) =>  {println!("Error opening & reading file {} ", &segment.path);
+                                                    process::exit(1);},
+    };
     let mut found_temperature: bool = false;
 
     for result in rdr.records() {
@@ -297,7 +300,7 @@ pub fn output_layer(layer: &Segment, path: &String) -> Result<(), Box<dyn Error>
     //    thermal_prop_layer_temp
     //    thermal_prop_struct_temp
     //    thermal_prop_struct_temp_frac
-    for (i, data) in layer.data_csv.iter().enumerate() {
+    for data in layer.data_csv.iter() {
         wtr.serialize((data.0, data.1.cp, data.1.R_th, data.1.e ))?;
     }
     wtr.flush()?;
@@ -309,8 +312,7 @@ pub fn output_layer(layer: &Segment, path: &String) -> Result<(), Box<dyn Error>
         Err(err) =>  {println!("Error while reading Results.csv {}", err);
                             process::exit(1);}
     };
-    /// TODO write this into seperate txt file along with csv
-    //wtr.write_record(&["Name", &layer.name, "", "",""])?;
+
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity", "Temp Layer"])?;
     
     //    thermal_prop_layer_temp
@@ -328,8 +330,6 @@ pub fn output_layer(layer: &Segment, path: &String) -> Result<(), Box<dyn Error>
         Err(err) =>  {println!("Error while reading Results.csv {}", err);
                             process::exit(1);}
     };
-    /// TODO write this into seperate txt file along with csv
-    //wtr.write_record(&["Name", &layer.name, "", "",""])?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity", "Temp Layer"])?;
     
     //    thermal_prop_layer_temp
@@ -347,14 +347,13 @@ pub fn output_layer(layer: &Segment, path: &String) -> Result<(), Box<dyn Error>
         Err(err) =>  {println!("Error while reading Results.csv {}", err);
                             process::exit(1);}
     };
-    /// TODO write this into seperate txt file along with csv
-    //wtr.write_record(&["Name", &layer.name, "", "",""])?;
+
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity","Temp Layer"])?;
     
     //    thermal_prop_layer_temp
     //    thermal_prop_struct_temp
     //    thermal_prop_struct_temp_frac
-    for (i, data) in layer.data_tps_temp_map.iter().enumerate() {
+    for data in layer.data_tps_temp_map.iter() {
         wtr.serialize((data.temp_part, data.thermal_data.cp, data.thermal_data.R_th, data.thermal_data.e, data.temp_sub_part))?;
     }
     wtr.flush()?;
@@ -365,14 +364,13 @@ pub fn output_layer(layer: &Segment, path: &String) -> Result<(), Box<dyn Error>
         Err(err) =>  {println!("Error while reading Results.csv {}", err);
                             process::exit(1);}
     };
-    /// TODO write this into seperate txt file along with csv
-    //wtr.write_record(&["Name", &layer.name, "", "",""])?;
+
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity","Temp Layer"])?;
     
     //    thermal_prop_layer_temp
     //    thermal_prop_struct_temp
     //    thermal_prop_struct_temp_frac
-    for (i, data) in layer.data_tps_temp_mult.iter().enumerate() {
+    for data in layer.data_tps_temp_mult.iter() {
         wtr.serialize((data.temp_part, data.thermal_data.cp, data.thermal_data.R_th, data.thermal_data.e, data.temp_sub_part))?;
     }
     wtr.flush()?;
@@ -394,9 +392,6 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
                             process::exit(1);}
     };
 
-    /// TODO write this into seperate txt file along with csv
-    //wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
-    //wtr.serialize((structure.name.clone(), structure.temp, structure.tickness, structure.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
     
     for (i, data) in tps.data_min.iter().enumerate() {
@@ -416,9 +411,6 @@ pub fn output_tps(tps: &TPS, path: String) -> Result<(), Box<dyn Error>> {
                             process::exit(1);}
     };
 
-    /// TODO write this into seperate txt file along with csv
-    //wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
-    //wtr.serialize((structure.name.clone(), structure.temp, structure.tickness, structure.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "Thermal Insulance", "Emissivity"])?;
     
     for (i, data) in tps.data_max.iter().enumerate() {
@@ -488,9 +480,6 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
                             process::exit(1);}
     };
 
-    /// TODO write this into seperate txt file along with csv
-    // wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
-    // wtr.serialize((part.name, part.temp, part.height_min.to_string() + " - " +  &part.height_max.to_string() , part.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "1 / Thermal Insulance", "Emissivity"])?;
     
     for (i, data) in part.data_min.iter().enumerate() {
@@ -509,9 +498,6 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
                             process::exit(1);}
     };
 
-    /// TODO write this into seperate txt file along with csv
-    // wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
-    // wtr.serialize((part.name, part.temp, part.height_min.to_string() + " - " +  &part.height_max.to_string() , part.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "1 / Thermal Insulance", "Emissivity"])?;
     
     for data in part.data_max.iter() {
@@ -555,7 +541,7 @@ pub fn output_part(part: Part, path: String) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn output_data_Triplet(name: &String, data: &Vec<DataTriplet>, path: String) -> Result<(), Box<dyn Error>> {
+pub fn output_data_triplet(name: &String, data: &Vec<DataTriplet>, path: String) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&path)?;
 
     let output_file = path.clone() + "/" + &name + ".csv";
@@ -566,9 +552,6 @@ pub fn output_data_Triplet(name: &String, data: &Vec<DataTriplet>, path: String)
                             process::exit(1);}
     };
 
-    /// TODO write this into seperate txt file along with csv
-    // wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
-    // wtr.serialize((part.name, part.temp, part.height_min.to_string() + " - " +  &part.height_max.to_string() , part.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "1 / Thermal Insulance", "Emissivity", "Temp Layer"])?;
     
     for data in data.iter() {
@@ -578,7 +561,7 @@ pub fn output_data_Triplet(name: &String, data: &Vec<DataTriplet>, path: String)
     Ok(())
 }
 
-pub fn output_data_Pair(name: &String, data: &Vec<DataPair>, path: String) -> Result<(), Box<dyn Error>> {
+pub fn output_data_pair(name: &String, data: &Vec<DataPair>, path: String) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&path)?;
 
     let output_file = path.clone() + "/" + &name + ".csv";
@@ -589,9 +572,6 @@ pub fn output_data_Pair(name: &String, data: &Vec<DataPair>, path: String) -> Re
                             process::exit(1);}
     };
 
-    /// TODO write this into seperate txt file along with csv
-    // wtr.write_record(&["Name", "MaxTemp", "Height", "Mass/Area"])?;
-    // wtr.serialize((part.name, part.temp, part.height_min.to_string() + " - " +  &part.height_max.to_string() , part.areal_density))?;
     wtr.write_record(&["Temp Part", "Heat Capacity", "1 / Thermal Insulance", "Emissivity"])?;
     
     for data in data {

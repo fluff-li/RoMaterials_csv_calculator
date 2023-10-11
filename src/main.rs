@@ -5,7 +5,6 @@ use read_write::*;
 use data_holder::*;
 
 use std::{
-    error::Error,
     process,
     path::PathBuf, 
     ffi::OsString,
@@ -242,7 +241,6 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
     //let mut data_adjusted: Vec<DataTriplet> = Vec::<DataTriplet>::with_capacity(ref_temp_list.len());
     let mut data_adjusted = Vec::<DataTriplet>::new();
     let mut index = 0;
-    let mut index2 = 0;
 
     for (i, temp) in ref_temp_list.iter().enumerate() {
         if temp >= &thermal_list[0].temp_part{
@@ -255,7 +253,6 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
     // take two neighboring values and fill int for temperatures fitting in between
     for (n, row) in thermal_list.iter().enumerate() {
         if row.temp_part > *ref_temp_list.last().unwrap() {
-            index2 = n;
             break;
         }
         
@@ -264,7 +261,7 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
         let temp_sub_part_delta = thermal_list[n+1].temp_sub_part - row.temp_sub_part;
 
 
-        for (i, temp) in ref_temp_list.iter().skip(index).enumerate() {
+        for temp in ref_temp_list.iter().skip(index) {
             if *temp == row.temp_part {
                 data_adjusted.push(DataTriplet { temp_part: row.temp_part, 
                                                 thermal_data: row.thermal_data,
@@ -290,7 +287,6 @@ fn fit_list(thermal_list: &Vec<DataTriplet>, ref_temp_list: &Vec<f32>) -> Vec<Da
                                                      thermal_data: data,
                                                      temp_sub_part: temp_sub_part });
             index += 1;
-            index2 = n;
             break;
         }
 
@@ -417,10 +413,15 @@ fn map_component_data_to_assembly(assemb_temp_max: f32, comp_temp_max: f32, comp
 
 /// Returns a new list with an averaged conductivity & insulation accross tickness, for given cold & Hot Side Temperature 
 pub fn avg_cp_k(lenght: f32, data_ref: &Vec<DataTriplet>, temp_max: f32, temp_min: f32, temp_list_5: &Vec<f32> ) -> Vec<DataTriplet>{
+    if temp_min == temp_max {
+        return data_ref.clone();
+    }
+
     let mut data_out= data_ref.clone();
     let mut steps = Vec::<(f32,f32,f32,f32,f32)>::new();
 
     let temp_frac = temp_min / temp_max;
+
 
     // smaller steps for smother curve, negating the effect of missing a step due to multiplication with temp_frac
     let data = fit_list(&data_ref, &temp_list_5);    
