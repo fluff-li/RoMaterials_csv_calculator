@@ -1,6 +1,7 @@
 Name,AFRSI,,
 Temperature Limit,922,,
-Density,96.1,Additive Areal Weight,1.46
+Density,96.1,,
+Additive Areal Weight,1.46,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 116.667,,1.38E-02,
 255.556,7.41E+02,2.94E-02,0.87

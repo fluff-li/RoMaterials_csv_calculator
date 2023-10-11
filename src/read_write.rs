@@ -270,12 +270,13 @@ pub fn read_material_csv(segment: &mut Segment) -> Result<(), Box<dyn Error>> {
                                                 Err(_err) =>  {println!("{} Can not convert Density into float", segment.name);
                                                                                 process::exit(1);},
                                             };
-                                            match record[3].parse::<f32>() {
-                                                Ok(result) => {segment.additive_areal_weight = result;},
-                                                Err(_err) =>  {if &record[2] == "Additive Areal Weight" {
-                                                                                    println!("{} Can not convert Additive Areal Weight into float", segment.name);
-                                                                                    process::exit(1);}}}
                                         },
+                "Additive Areal Weight" => {match record[1].parse::<f32>() {
+                                                    Ok(result) => {segment.additive_areal_weight = result;},
+                                                    Err(_err) =>  {println!("{} Can not convert Additive Areal Weight into float", segment.name);
+                                                                                    process::exit(1);},
+                                                };
+                                            },
                 "Temperature"       => found_temperature = true,
                 &_                  => {},
             }
