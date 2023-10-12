@@ -1,0 +1,6 @@
+Name,Inconel-X,,,,
+Temperature,1255,,,,
+Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Inconel-X-750.csv,1,0.0005,1255,922
+Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Inconel-X-750.csv,1,0.001,1255,922

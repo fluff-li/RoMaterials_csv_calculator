@@ -1,0 +1,7 @@
+Name,X-15 Wing,,,
+Description,-,,,
+Temperature,1255.15,,,
+CostPerArea,0,,,
+HasAblator,false,,,
+,Name,Portion,,
+Structure,Inconel-X,1,min,max

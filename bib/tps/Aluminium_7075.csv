@@ -1,0 +1,6 @@
+Name,Aluminium_7075,,,,
+Temperature,588,,,,
+Min,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
+Top Layer,bib/materials/Aluminium_7075.csv,1,0.0012,588,588
+Max,Path,Portion,TicknessTemp Hot Side, Temp Cold Side,
+Top Layer,bib/materials/Aluminium_7075.csv,1,0.003,588,588

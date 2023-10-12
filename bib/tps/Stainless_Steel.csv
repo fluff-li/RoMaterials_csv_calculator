@@ -1,0 +1,7 @@
+Name,Stainless_Steel,,,,
+Description,X5CrNi18-9,,,,
+Temperature,983,,,,
+Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Steel_X5CrNi18-9.csv,1,0.0005,983,983
+Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Steel_X5CrNi18-9.csv,1,0.001,983,983

@@ -1,5 +1,5 @@
 Name,Inconel_601,,
-Temperature Limit,1600,,
+Temperature Limit,1600,Melt Temperature,
 Density,8060,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 294.444,448,11.2,

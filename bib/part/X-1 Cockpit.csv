@@ -1,0 +1,7 @@
+Name,X-1 Cockpit,,,
+Description,Aluminium 7075 Frame,,,
+Temperature,588,,,
+CostPerArea,0,,,
+HasAblator,false,,,
+,Name,Portion,,
+Structure,Aluminium_7075,1,min,max

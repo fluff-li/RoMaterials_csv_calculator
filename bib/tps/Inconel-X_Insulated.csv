@@ -1,0 +1,8 @@
+Name,Inconel-X_Insulated,,,,
+Temperature,1255,,,,
+Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Inconel-X-750.csv,1,0.001,1255,1255
+Layer,bib/materials/ThermoFlex-RF-300.csv,1,0.0005,1255,322
+Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Inconel-X-750.csv,1,0.004,1255,1255
+Layer,bib/materials/ThermoFlex-RF-300.csv,1,0.001,1255,322

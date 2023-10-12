@@ -1,0 +1,13 @@
+Name,Aluminium_7075,,
+Temperature Limit,588,Melt Temp,751
+Density,2800,,
+Temperature,Specific Heat,Thermal Conductivity,Emissivity
+100,4.73E+02,65,
+200,7.87E+02,1.63E+02,0.11
+291.15,835.4,166.7,
+371.15,897,160.8,
+421.15,916.3,152.7,
+471.15,974,142.2,
+571.15,1012.5,135.7,0.19
+671.15,1128,128.4,
+771.15,1205,114.8,

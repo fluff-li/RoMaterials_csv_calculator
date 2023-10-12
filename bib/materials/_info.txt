@@ -1,0 +1,27 @@
+Main Reference
+TPSX Material Properties Database: https://tpsx.arc.nasa.gov/
+
+Aluminium_2024
+
+Aluminium_7075
+https://www.researchgate.net/figure/The-material-parameters-of-7075-aluminium-alloy-Temperature-C-Specific-heat_tbl1_339118636
+https://www.makeitfrom.com/material-properties/7075-T6-Aluminum
+
+Monel-K
+https://www.specialmetals.com/documents/technical-bulletins/monel-alloy-k-500.pdf
+https://www.australwright.com.au/technical-data/alloys/high-performance-alloys/n05500-monel-k-500/
+
+Steel
+https://tubingchina.com/High-Temperature-Property-Stainless-Steel.htm
+
+
+Inconel-X-750
+ref: www.specialmetals.com/documents/technical-bulletins/inconel/inconel-alloy-x-750.pdf
+
+ThermoFlex-RF-300
+ref: Flight test aerodynamic heating data for the afterbody of the Project Mercury spacecraft with comparisons to available prediction methods
+     https://ntrs.nasa.gov/api/citations/19670020040
+
+
+TZM
+https://www.plansee.com/en/materials/molybdenum.html

@@ -1,0 +1,7 @@
+Name,X-15 Cockpit,,,
+Description,Inconel-X Insulated,,,
+Temperature,1255.15,,,
+CostPerArea,0,,,
+HasAblator,false,,,
+,Name,Portion,,
+Structure,Inconel-X_Insulated,1,min,max

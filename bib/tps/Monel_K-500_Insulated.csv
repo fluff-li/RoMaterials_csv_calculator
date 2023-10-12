@@ -1,0 +1,8 @@
+Name,Monel_K-500_Insulated,,,,
+Temperature,1123,,,,
+Min,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Monel_K-500.csv,1,0.0005,1123,1123
+Layer,bib/materials/ThermoFlex-RF-300.csv,1,0.00025,1123,322
+Max,Path,Portion,Tickness,Temp Hot Side, Temp Cold Side
+Top Layer,bib/materials/Monel_K-500.csv,1,0.0008,1123,1123
+Layer,bib/materials/ThermoFlex-RF-300.csv,1,0.0005,1123,322

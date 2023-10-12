@@ -1,10 +1,14 @@
 Name,TZM,PFR-6 Coated,
-Temperature Limit,1800,,
+Temperature Limit,1573.15,50% Tensile Strength,
 Density,10200,,
 Temperature,Specific Heat,Thermal Conductivity,Emissivity
 273,200,,
-293.15,,126,
+298.15,,122,
+473.15,,119,
+673.15,,116,
 773,240,,
+873.15,,112,
+1073.15,,109,
 1123.15,,,0.88
 1223.15,,,0.84
 1273.15,280,98,

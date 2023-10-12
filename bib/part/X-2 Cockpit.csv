@@ -1,0 +1,8 @@
+Name,X-2 Cockpit,,,
+Description,Monel K & Steel Frame Insulated,,,
+Temperature,1123,,,
+CostPerArea,0,,,
+HasAblator,false,,,
+,Name,Portion,,
+Structure,Monel_K-500_Insulated,0.5,min,max
+Structure,Stainless_Steel,0.5,min,max

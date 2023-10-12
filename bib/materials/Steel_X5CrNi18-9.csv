@@ -1,0 +1,13 @@
+Name,Steel_X5CrNi18-9,AISI 304,
+Temperature Limit,983,50% Tensile Strength,
+Density,7950,Melt Temperature,1670
+Temperature,Specific Heat,Thermal Conductivity,Emissivity
+100,272,9.2,
+200,402,12.6,
+300,477,14.9,
+400,515,16.6,
+600,557,19.8,
+800,582,22.6,
+1000,611,25.4,
+1200,640,28,
+1500,682,31.7,
